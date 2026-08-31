@@ -1955,3 +1955,6 @@ flowchart LR
 | **Independência de tecnologia**    | O diagrama é agnóstico: serve igualmente para Frontend JS/Python, API Python/Go, MySQL/PostgreSQL.                                           |
 | **Coesão de ator**                 | API Mock aparece apenas em casos de leitura de catálogo, refletindo corretamente seu papel passivo.                                          |
 | **Testabilidade**                  | Casos internos isolados facilitam criação de testes unitários de regras de negócio.                                                          |
+# DOCUMENTO HISTÓRICO
+
+> Superado em 30/08/2026 por `prj_docs/md/objetivos.md` e `prj_docs/md/decisoes.md`. Preservado apenas para rastreabilidade da concepção; não é fonte de requisitos vigentes.

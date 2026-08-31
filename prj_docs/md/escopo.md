@@ -1,5 +1,42 @@
-# ESCOPO
+# Escopo do projeto COBECO
 
-O escopo do COBECO contempla o desenvolvimento de uma aplicação web composta por uma página inicial pública, com dados de exemplo, tabelas ilustrativas e depoimentos, e por uma área restrita denominada "plataforma", acessível somente após o cadastro e login do usuário, na qual será possível criar, editar e excluir listas de produtos, realizar cotações individuais ou de listas inteiras, visualizar um histórico das pesquisas já realizadas e acessar um painel comparativo com filtros como menor preço, menor prazo de entrega ou melhor custo-benefício. Do ponto de vista técnico, o projeto envolve a definição da arquitetura da aplicação, a escolha e documentação de uma ou mais APIs públicas de produtos e varejo a serem utilizadas, a modelagem do banco de dados responsável por armazenar usuários, listas, produtos e o histórico de cotações, além da definição de estratégias para lidar com limites de requisição e eventual indisponibilidade das APIs externas consultadas. Também fazem parte do escopo requisitos não funcionais relacionados a desempenho, segurança dos dados dousuário, usabilidade em diferentesdispositivose capacidade de crescimento da plataforma
+## Objetivo
 
-conforme o aumento de usuários. Ficam fora do escopo deste projeto, ao menos em sua primeira versão, a realização da compra diretamente pela aplicação — que atuará apenas direcionando o usuário ao site do lojista —, a garantia de preços em tempo real independentemente da atualização das fontes externas, o desenvolvimento de um aplicativo mobile nativo e qualquer forma de intermediação de pagamento entre usuário e lojista. Como entregáveis, espera-se produzir a documentação de escopo e requisitos, protótipos das telas principais, o modelo de dados da aplicação e a versão funcional do sistema, sempre considerando como premissa a disponibilidade e a estabilidade das APIs públicas escolhidas para o projeto.
+Desenvolver uma aplicação web que permita a usuários autenticados organizar listas de bens de consumo e comparar fornecedores por paridade de cobertura, identificando itens disponíveis, ausentes e o menor custo consolidado.
+
+## Incluído no MVP
+
+- cadastro, login, logout, recuperação de senha, consentimento e exclusão de conta;
+- criação, edição, duplicação, exclusão e compartilhamento de listas;
+- categorias e produtos normalizados em catálogo PostgreSQL;
+- seleção dos fornecedores participantes da comparação;
+- agrupamento por conjunto idêntico de itens disponíveis;
+- percentual de cobertura, itens ausentes, total por fornecedor e menor custo consolidado do grupo;
+- destaque do melhor grupo por maior cobertura e menor custo em caso de empate;
+- persistência, reabertura, comparação e exclusão do histórico de cotações;
+- exportação CSV e impressão/PDF pelo navegador;
+- interface React responsiva, acessível por teclado e com tema claro/escuro;
+- contrato OpenAPI e Swagger UI em `/docs`;
+- execução em três serviços Docker: web, API e PostgreSQL;
+- testes unitários, integração HTTP, BDD e E2E, executados na integração contínua quando aplicável.
+
+## Fonte dos preços
+
+O MVP usa preços determinísticos do catálogo seedado. O seed contém uma categoria, oito fornecedores e dez produtos, reproduzindo o cenário A–H da especificação. Provedores externos são extensão pós-MVP e ficam desativados por padrão.
+
+## Fora do escopo do MVP
+
+- pagamento, carrinho ou conclusão de compra;
+- garantia de preço em tempo real ou estoque físico;
+- aplicativo móvel nativo;
+- autenticação social;
+- alertas automáticos de queda de preço;
+- painel administrativo completo para manutenção do catálogo;
+- dependência obrigatória de APIs públicas de varejistas.
+
+## Restrições
+
+- demonstração em ambiente acadêmico e catálogo inicialmente limitado a supermercado;
+- dados pessoais mínimos e senhas protegidas por Argon2;
+- sessão renovável com janela máxima de 30 minutos sem atividade;
+- HTTPS obrigatório na publicação em produção.

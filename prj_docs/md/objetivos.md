@@ -79,7 +79,7 @@ Os requisitos estão organizados em três categorias: **Funcionais** (ações qu
 | Código | Descrição do Requisito |
 |--------|-------------------------|
 | **RF12** | O sistema deve permitir a solicitação de cotação para uma lista específica, processando todos os itens nela contidos. |
-| **RF13** | O sistema deve agrupar os fornecedores em **sublistas** conforme a quantidade de itens da lista do usuário que cada fornecedor possui: Grupo 100%, Grupo ≥80%, Grupo ≥60%, etc. |
+| **RF13** | O sistema deve agrupar em uma mesma **sublista** os fornecedores que possuam exatamente o mesmo conjunto de itens da lista, exibindo o percentual de cobertura como rótulo (100%, 80%, 60% etc.). |
 | **RF14** | O sistema deve calcular o valor total de cada sublista, considerando apenas os produtos disponíveis no catálogo daquele agrupamento de fornecedores. |
 | **RF15** | O sistema deve identificar e destacar visualmente a sublista com o **menor custo consolidado**. |
 | **RF16** | O sistema deve listar, para cada sublista, os **produtos ausentes** (não disponíveis naquele agrupamento de fornecedores). |
@@ -149,7 +149,7 @@ Os requisitos estão organizados em três categorias: **Funcionais** (ações qu
 |--------|-------------------------|
 | **RNF18** | Toda a stack tecnológica deve utilizar ferramentas, frameworks e tecnologias **FOSS (Free and Open Source Software)** ou de uso livre/gratuito. |
 | **RNF19** | **Backend:** Node.js (com Fastify ou Express) ou NestJS (recomendado para tipagem forte e Clean Architecture). |
-| **RNF20** | **Frontend:** HTML5, CSS3 e JavaScript/TypeScript. Recomenda-se **Alpine.js** ou **Vue.js** para reatividade simples, evitando complexidade de frameworks pesados (React + jQuery é considerado anti-pattern). |
+| **RNF20** | **Frontend:** React 18 com HTML5, CSS3 e TypeScript. A aplicação não deve misturar React com jQuery; a componentização e a tipagem forte devem ser preservadas. |
 | **RNF21** | **Banco de Dados:** PostgreSQL com **Prisma ORM** ou **Drizzle ORM** para mapeamento e migrations. |
 | **RNF22** | **Versionamento:** GitHub com Git Flow ou GitHub Flow. |
 

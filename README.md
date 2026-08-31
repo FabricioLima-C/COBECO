@@ -34,7 +34,7 @@ Desenvolver um MVP funcional e minimalista que automatize a comparação de pre�
 - Implementar autenticação segura (cadastro, login, recuperação de senha);
 - Permitir CRUD completo de listas de compras (criar, editar, excluir, duplicar);
 - Manter um cadastro interno de fornecedores, categorias e produtos (via *seed*);
-- Desenvolver o "Motor de Paridade" que agrupa fornecedores por percentual de itens disponíveis e gera sub-listas;
+- Desenvolver o "Motor de Paridade" que agrupa fornecedores com o mesmo conjunto de itens disponíveis e informa o percentual de cobertura;
 - Exibir comparativos destacando o melhor orçamento e os produtos faltantes;
 - Garantir a persistência dos dados (listas e históricos) em banco relacional (PostgreSQL);
 - Estabelecer comunicação robusta entre Frontend e Backend via API RESTful documentada (OpenAPI).
@@ -77,7 +77,7 @@ Para garantir a entrega dentro do prazo (até **13 de Novembro de 2026**) e a qu
 ### Módulo de Cotação e Comparação (Motor de Paridade)
 - Submissão de uma lista para cotação.
 - Agrupamento de fornecedores por **paridade de disponibilidade**:
-  - Ex: Grupo 100% (possuem todos os itens), Grupo ≥80%, Grupo ≥60%, etc.
+  - fornecedores com exatamente o mesmo perfil formam um grupo; 100%, 80% etc. são rótulos de cobertura.
 - Cálculo do valor total para cada sub-lista (considerando apenas os itens disponíveis).
 - **Destaque visual** para o menor orçamento consolidado.
 - Listagem explícita dos **produtos ausentes** em cada agrupamento (essencial para a decisão de compra).
@@ -92,7 +92,7 @@ Para garantir a entrega dentro do prazo (até **13 de Novembro de 2026**) e a qu
 
 | Camada | Tecnologias | Motivo da Escolha |
 | :--- | :--- | :--- |
-| **Frontend** | HTML5, CSS3, TypeScript / **Alpine.js** ou **Vue.js** (leve) | Foco em simplicidade e renderização rápida. *Evitamos React + jQuery (anti-pattern)*. |
+| **Frontend** | HTML5, CSS3, TypeScript, **React 18** e Vite | Tipagem e componentização já validadas, sem jQuery. |
 | **Backend** | Node.js + **Fastify** (ou Express) / **NestJS** | NestJS oferece tipagem forte e arquitetura modular, ideal para Clean Architecture. |
 | **Banco de Dados** | **PostgreSQL** | Suporte robusto a ACID, excelente performance para queries matemáticas e integração com ORMs modernos. |
 | **ORM/Migrations** | **Prisma** ou **Drizzle** | Facilita o versionamento do schema e a execução de seeds. |
@@ -111,7 +111,7 @@ Para garantir a entrega dentro do prazo (até **13 de Novembro de 2026**) e a qu
 ├─────────────────┬─────────────────┬─────────────────────────┤
 │   FRONTEND      │    BACKEND      │   POSTGRESQL            │
 │   (UI - UI/UX)  │ (API - Lógica)  │   (Persistência)        │
-│   Porta: 8080   │   Porta: 3000   │   Porta: 5432           │
+│   Porta: 5173   │   Porta: 3333   │   Porta: 5432           │
 ├─────────────────┴─────────────────┴─────────────────────────┤
 │               Comunicação via API REST (OpenAPI)            │
 └─────────────────────────────────────────────────────────────┘
@@ -137,7 +137,7 @@ cd cobeco-mvp
 docker-compose up -d --build
 
 # 4. Acesse a aplicação no navegador
-http://localhost:8080
+http://localhost:5173
 
 # 5. (Opcional) Execute os testes
 docker-compose exec backend npm run test

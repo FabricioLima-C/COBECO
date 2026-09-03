@@ -8,12 +8,15 @@ export const quoteItemSchema = z.object({
     .max(160, 'Descrição muito longa'),
 });
 
+// RF11: a comparação exige de 2 a 10 fornecedores escolhidos pelo usuário.
+export const MIN_SUPPLIERS = 2;
+export const MAX_SUPPLIERS = 10;
+
 export const quoteListSchema = z.object({
   supplierIds: z
     .array(z.string().trim().min(1))
-    .min(1, 'Selecione ao menos um fornecedor')
-    .max(100)
-    .optional(),
+    .min(MIN_SUPPLIERS, `Selecione ao menos ${MIN_SUPPLIERS} fornecedores para comparar`)
+    .max(MAX_SUPPLIERS, `Selecione no máximo ${MAX_SUPPLIERS} fornecedores por comparação`),
 });
 
 export const compareQuotationSchema = z

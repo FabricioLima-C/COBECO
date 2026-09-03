@@ -14,10 +14,28 @@ describe('rotas da API', () => {
 
   const credentials = {
     name: 'Usuária de Teste',
+    username: 'rotas_teste',
     email: 'Rotas.Teste@Example.com',
-    password: 'Senha1234',
+    password: 'Senha1234!',
     consent: true,
   };
+
+  /**
+   * O login tem rate limit de 5 tentativas por 15 minutos (RNF13). Reaproveitar
+   * o token entre os testes evita que a própria suíte estoure a janela.
+   */
+  let cachedToken = '';
+
+  async function authHeaders() {
+    if (!cachedToken) {
+      const login = await call('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: credentials.email, password: credentials.password }),
+      });
+      cachedToken = login.body.accessToken;
+    }
+    return { Authorization: `Bearer ${cachedToken}` };
+  }
 
   async function call(path: string, init: RequestInit = {}) {
     const response = await fetch(`${baseUrl}${path}`, {
@@ -63,7 +81,12 @@ describe('rotas da API', () => {
   it('recusa o cadastro sem consentimento explícito', async () => {
     const { status, body } = await call('/api/auth/sign-up', {
       method: 'POST',
-      body: JSON.stringify({ ...credentials, email: 'sem.consent@example.com', consent: false }),
+      body: JSON.stringify({
+        ...credentials,
+        username: 'sem_consent',
+        email: 'sem.consent@example.com',
+        consent: false,
+      }),
     });
     expect(status).toBe(400);
     expect(body.error.message).toMatch(/aceitar o tratamento/i);
@@ -84,8 +107,8 @@ describe('rotas da API', () => {
     });
     expect(login.status).toBe(200);
 
-    const token: string = login.body.accessToken;
-    const auth = { Authorization: `Bearer ${token}` };
+    cachedToken = login.body.accessToken;
+    const auth = { Authorization: `Bearer ${cachedToken}` };
 
     const created = await call('/api/platform/lists', {
       method: 'POST',
@@ -115,11 +138,7 @@ describe('rotas da API', () => {
   });
 
   it('expõe o catálogo e gera os quatro grupos de paridade A-H', async () => {
-    const login = await call('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email: credentials.email, password: credentials.password }),
-    });
-    const auth = { Authorization: `Bearer ${login.body.accessToken}` };
+    const auth = await authHeaders();
     const categories = await call('/api/platform/categories', { headers: auth });
     expect(categories.status).toBe(200);
     const categoryId = categories.body[0].id;
@@ -146,23 +165,72 @@ describe('rotas da API', () => {
       headers: auth,
       body: JSON.stringify({ items }),
     });
+    const allSupplierIds = suppliers.body.map((supplier: { id: string }) => supplier.id);
     const quotation = await call(`/api/platform/lists/${created.body.id}/quote`, {
       method: 'POST',
       headers: auth,
-      body: JSON.stringify({
-        supplierIds: suppliers.body.map((supplier: { id: string }) => supplier.id),
-      }),
+      body: JSON.stringify({ supplierIds: allSupplierIds }),
     });
     expect(quotation.status).toBe(200);
     expect(quotation.body.groups).toHaveLength(4);
     expect(quotation.body.groups[0]).toMatchObject({ coverage: 100 });
     expect(quotation.body.bestGroupId).toBe(quotation.body.groups[0].groupId);
+
+    // RF12: disponibilidade por fornecedor, já ordenada por nome.
+    const availability = await call(`/api/platform/lists/${created.body.id}/suppliers`, {
+      headers: auth,
+    });
+    expect(availability.status).toBe(200);
+    expect(availability.body).toHaveLength(8);
+    expect(availability.body[0]).toMatchObject({
+      name: 'Fornecedor A',
+      availableItems: 9,
+      totalItems: 9,
+      availability: 100,
+    });
+    // D cobre 6 dos 9 itens do cenário de paridade.
+    const fornecedorD = availability.body.find(
+      (entry: { name: string }) => entry.name === 'Fornecedor D'
+    );
+    expect(fornecedorD).toMatchObject({ availableItems: 6, availability: 66.67 });
+
+    // RF11: a comparação exige de 2 a 10 fornecedores.
+    const poucos = await call(`/api/platform/lists/${created.body.id}/quote`, {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ supplierIds: allSupplierIds.slice(0, 1) }),
+    });
+    expect(poucos.status).toBe(400);
+    expect(poucos.body.error.message).toMatch(/ao menos 2 fornecedores/i);
+
+    const demais = await call(`/api/platform/lists/${created.body.id}/quote`, {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({
+        supplierIds: Array.from({ length: 11 }, (_, index) => `supplier-${index}`),
+      }),
+    });
+    expect(demais.status).toBe(400);
+    expect(demais.body.error.message).toMatch(/no máximo 10 fornecedores/i);
+  });
+
+  it('autentica pelo nome de usuário, e não só pelo e-mail (RF02)', async () => {
+    const login = await call('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ identifier: credentials.username, password: credentials.password }),
+    });
+    expect(login.status).toBe(200);
+    expect(login.body.user.username).toBe('rotas_teste');
   });
 
   it('renova a sessão pelo cookie de refresh e rejeita o refresh como token de acesso', async () => {
     await call('/api/auth/sign-up', {
       method: 'POST',
-      body: JSON.stringify({ ...credentials, email: 'refresh.teste@example.com' }),
+      body: JSON.stringify({
+        ...credentials,
+        username: 'refresh_teste',
+        email: 'refresh.teste@example.com',
+      }),
     });
 
     const login = await call('/api/auth/login', {
@@ -200,11 +268,7 @@ describe('rotas da API', () => {
   });
 
   it('aplica o teto de paginação do histórico', async () => {
-    const login = await call('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email: credentials.email, password: credentials.password }),
-    });
-    const auth = { Authorization: `Bearer ${login.body.accessToken}` };
+    const auth = await authHeaders();
 
     const ok = await call('/api/platform/quotations/history?page=1&pageSize=20', { headers: auth });
     expect(ok.status).toBe(200);

@@ -70,6 +70,9 @@ export function createPlatformRoutes(
   router.delete('/quotations/:quotationId', (req, res, next) =>
     quotationController.remove(req, res, next)
   );
+  router.get('/lists/:listId/suppliers', (req, res, next) =>
+    quotationController.listSuppliers(req, res, next)
+  );
   router.post('/lists/:listId/quote', validateBody(quoteListSchema), (req, res, next) =>
     quotationController.quoteList(req, res, next)
   );

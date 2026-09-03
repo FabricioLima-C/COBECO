@@ -1,20 +1,72 @@
+// O seed roda com cwd em apps/api; sem isto o DATABASE_URL do .env local
+// nao chega ao Prisma e o comando documentado falha.
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * RNF09: 50 produtos e 10 fornecedores.
+ *
+ * Os produtos 1 a 10 e as coberturas de A a H são os da seção 7.3 do documento
+ * de concepção e não devem mudar: comparar apenas A-H sobre os produtos 1 a 9
+ * tem de continuar gerando os grupos A,B / C,E,F,H / D / G. Fornecedores I e J
+ * e os produtos 11 a 50 ampliam o catálogo sem tocar nesse cenário.
+ */
 const products = [
-  ['product-1', 'Arroz 5 kg'],
-  ['product-2', 'Feijão 1 kg'],
-  ['product-3', 'Óleo de soja 900 ml'],
-  ['product-4', 'Açúcar 1 kg'],
-  ['product-5', 'Café 500 g'],
-  ['product-6', 'Leite integral 1 L'],
-  ['product-7', 'Farinha de trigo 1 kg'],
-  ['product-8', 'Macarrão 500 g'],
-  ['product-9', 'Sal 1 kg'],
-  ['product-10', 'Produto sem oferta'],
-] as const;
+  'Arroz 5 kg',
+  'Feijão 1 kg',
+  'Óleo de soja 900 ml',
+  'Açúcar 1 kg',
+  'Café 500 g',
+  'Leite integral 1 L',
+  'Farinha de trigo 1 kg',
+  'Macarrão 500 g',
+  'Sal 1 kg',
+  'Produto sem oferta',
+  'Molho de tomate 340 g',
+  'Extrato de tomate 340 g',
+  'Milho em conserva 200 g',
+  'Ervilha em conserva 200 g',
+  'Atum em lata 170 g',
+  'Sardinha em lata 125 g',
+  'Biscoito cream cracker 400 g',
+  'Biscoito recheado 140 g',
+  'Achocolatado em pó 400 g',
+  'Chá preto 10 sachês',
+  'Manteiga 200 g',
+  'Margarina 500 g',
+  'Queijo mussarela 500 g',
+  'Presunto fatiado 200 g',
+  'Iogurte natural 170 g',
+  'Requeijão cremoso 200 g',
+  'Ovos brancos dúzia',
+  'Pão de forma 500 g',
+  'Pão francês 1 kg',
+  'Bolo pronto 300 g',
+  'Frango congelado 1 kg',
+  'Carne moída 1 kg',
+  'Linguiça toscana 1 kg',
+  'Bacon defumado 250 g',
+  'Peixe congelado 800 g',
+  'Batata 1 kg',
+  'Cebola 1 kg',
+  'Tomate 1 kg',
+  'Alho 200 g',
+  'Banana 1 kg',
+  'Maçã 1 kg',
+  'Laranja 1 kg',
+  'Detergente 500 ml',
+  'Sabão em pó 1 kg',
+  'Amaciante 2 L',
+  'Água sanitária 1 L',
+  'Papel higiênico 4 rolos',
+  'Sabonete 90 g',
+  'Creme dental 90 g',
+  'Shampoo 350 ml',
+].map((name, index) => [`product-${index + 1}`, name] as const);
 
+/** Coberturas fixas do cenário de paridade, sobre os produtos 1 a 9. */
 const coverage: Record<string, number[]> = {
   A: [1, 2, 3, 4, 5, 6, 7, 8, 9],
   B: [1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -24,7 +76,19 @@ const coverage: Record<string, number[]> = {
   F: [1, 2, 3, 4, 5, 6, 8, 9],
   G: [1, 3, 4, 5, 8, 9],
   H: [1, 2, 3, 4, 5, 6, 8, 9],
+  I: [1, 2, 3, 5, 6, 7, 8, 9],
+  J: [2, 3, 4, 5, 6, 8, 9],
 };
+
+/**
+ * Produtos 11 a 50: a lacuna determinística dá ao filtro de disponibilidade
+ * (RF12) percentuais diferentes para exibir, em vez de 100% em todo mundo.
+ */
+function extendedCoverage(supplierIndex: number): number[] {
+  return Array.from({ length: 40 }, (_, offset) => offset + 11).filter(
+    (productNumber) => (productNumber + supplierIndex) % 7 !== 0
+  );
+}
 
 async function main() {
   const category = await prisma.category.upsert({
@@ -48,7 +112,7 @@ async function main() {
       update: { name: `Fornecedor ${letter}`, active: true },
       create: { id: supplierId, name: `Fornecedor ${letter}`, categoryId: category.id },
     });
-    for (const productNumber of productNumbers) {
+    for (const productNumber of [...productNumbers, ...extendedCoverage(supplierIndex)]) {
       await prisma.supplierProduct.upsert({
         where: { supplierId_productId: { supplierId, productId: `product-${productNumber}` } },
         update: { price: 5 + productNumber + supplierIndex, active: true },
@@ -105,7 +169,9 @@ async function main() {
 }
 
 main()
-  .then(() => console.log('Seed concluído: catálogo A-H e dados públicos carregados.'))
+  .then(() =>
+    console.log('Seed concluído: catálogo A-J (10 fornecedores, 50 produtos) e dados públicos carregados.')
+  )
   .catch((error) => {
     console.error(error);
     process.exitCode = 1;

@@ -32,6 +32,20 @@ export class QuotationController {
     }
   }
 
+  /** RF12: fornecedores da categoria com o percentual de itens que atendem. */
+  async listSuppliers(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(
+        await this.quotationService.listSupplierAvailability(
+          this.getUserId(req),
+          req.params.listId
+        )
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async history(req: Request, res: Response, next: NextFunction) {
     try {
       res.json(

@@ -12,14 +12,14 @@ paths:
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/SignUp' } } }
-      responses: { '201': { description: Usuário criado }, '400': { $ref: '#/components/responses/Error' } }
+      responses: { '201': { description: Usuário criado }, '400': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
   /auth/login:
     post:
       tags: [Autenticação]
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/Login' } } }
-      responses: { '200': { description: Sessão iniciada }, '401': { $ref: '#/components/responses/Error' } }
+      responses: { '200': { description: Sessão iniciada }, '401': { $ref: '#/components/responses/Error' }, '429': { description: 'Rate limit: 5 tentativas por 15 minutos (RNF13)' } }
   /auth/refresh:
     post:
       tags: [Autenticação]
@@ -80,6 +80,19 @@ paths:
       parameters: [{ $ref: '#/components/parameters/ListId' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ListItemInput' } } } }
       responses: { '201': { description: Item incluído } }
+  /platform/lists/{listId}/suppliers:
+    get:
+      security: [{ bearerAuth: [] }]
+      tags: [Cotação]
+      summary: Disponibilidade de cada fornecedor perante os itens da lista (RF12)
+      parameters: [{ $ref: '#/components/parameters/ListId' }]
+      responses:
+        '200':
+          description: Fornecedores da categoria, ordenados por nome
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/SupplierAvailability' } }
+        '404': { $ref: '#/components/responses/Error' }
   /platform/lists/{listId}/quote:
     post:
       security: [{ bearerAuth: [] }]
@@ -91,7 +104,14 @@ paths:
           application/json:
             schema:
               type: object
-              properties: { supplierIds: { type: array, minItems: 1, items: { type: string } } }
+              required: [supplierIds]
+              properties:
+                supplierIds:
+                  type: array
+                  minItems: 2
+                  maxItems: 10
+                  description: RF11 — de 2 a 10 fornecedores por comparação.
+                  items: { type: string }
       responses:
         '200': { description: Grupos de paridade, content: { application/json: { schema: { $ref: '#/components/schemas/ParityQuotation' } } } }
         '400': { $ref: '#/components/responses/Error' }
@@ -124,12 +144,33 @@ components:
   schemas:
     SignUp:
       type: object
-      required: [name, email, password, consent]
-      properties: { name: { type: string }, email: { type: string, format: email }, password: { type: string, minLength: 8 }, consent: { type: boolean } }
+      required: [name, username, email, password, consent]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        username: { type: string, minLength: 3, maxLength: 30, pattern: '^[A-Za-z0-9_]+$' }
+        email: { type: string, format: email, maxLength: 255 }
+        password:
+          type: string
+          minLength: 8
+          description: Exige maiúscula, minúscula, número e caractere especial (RF01).
+        consent: { type: boolean }
     Login:
       type: object
-      required: [email, password]
-      properties: { email: { type: string, format: email }, password: { type: string } }
+      required: [password]
+      description: Informe `identifier` (e-mail ou username, RF02). `email` segue aceito por compatibilidade.
+      properties:
+        identifier: { type: string }
+        email: { type: string }
+        password: { type: string }
+    SupplierAvailability:
+      type: object
+      required: [id, name, availableItems, totalItems, availability]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        availableItems: { type: integer }
+        totalItems: { type: integer }
+        availability: { type: number, format: double, minimum: 0, maximum: 100 }
     Category: { type: object, required: [id, name], properties: { id: { type: string }, name: { type: string } } }
     CreateList:
       type: object

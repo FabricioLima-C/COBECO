@@ -11,7 +11,12 @@ import {
   ProductList,
   QuotationResponse,
   Supplier,
+  SupplierAvailability,
 } from '../services/api';
+
+/** RF11: limites da sessão de comparação. */
+const MIN_SUPPLIERS = 2;
+const MAX_SUPPLIERS = 10;
 
 export function ListsPage() {
   const { user, logout } = useAuth();
@@ -37,6 +42,9 @@ export function ListsPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [supplierIds, setSupplierIds] = useState<string[]>([]);
+  const [supplierStats, setSupplierStats] = useState<SupplierAvailability[]>([]);
+  // RF12: piso de disponibilidade exigido dos fornecedores exibidos.
+  const [minAvailability, setMinAvailability] = useState(0);
 
   const selected = lists.find((list) => list.id === selectedId) || null;
   const replace = (list: ProductList) =>
@@ -71,14 +79,37 @@ export function ListsPage() {
       .then(([loadedSuppliers, loadedProducts]) => {
         setSuppliers(loadedSuppliers);
         setProducts(loadedProducts);
-        setSupplierIds(loadedSuppliers.map((supplier) => supplier.id));
+        // RF11: a seleção começa cheia, respeitando o teto de fornecedores.
+        setSupplierIds(loadedSuppliers.slice(0, MAX_SUPPLIERS).map((supplier) => supplier.id));
       })
       .catch(message);
   }, [selected?.categoryId, categories]);
 
+  // RF12: a disponibilidade depende dos itens da lista, então recarrega quando
+  // a lista muda ou ganha/perde itens.
+  useEffect(() => {
+    if (!selected || selected.items.length === 0) {
+      setSupplierStats([]);
+      return;
+    }
+    apiService.getListSupplierAvailability(selected.id).then(setSupplierStats).catch(message);
+  }, [selected?.id, selected?.items.length]);
+
+  // E3 do Fluxo 3: mexer no filtro não pode desmarcar quem continua elegível,
+  // mas quem saiu da lista precisa sair da seleção.
+  useEffect(() => {
+    setSupplierIds((current) =>
+      current.filter((id) => {
+        const stat = supplierStats.find((candidate) => candidate.id === id);
+        return !stat || stat.availability >= minAvailability;
+      })
+    );
+  }, [minAvailability, supplierStats]);
+
   useEffect(() => {
     setQuotation(null);
     setShareLink('');
+    setMinAvailability(0);
   }, [selectedId]);
 
   async function createList(event: FormEvent) {
@@ -238,6 +269,24 @@ export function ListsPage() {
     } catch (requestError) {
       message(requestError);
     }
+  }
+
+  const statById = new Map(supplierStats.map((stat) => [stat.id, stat]));
+  const visibleSuppliers = suppliers.filter((supplier) => {
+    const stat = statById.get(supplier.id);
+    return !stat || stat.availability >= minAvailability;
+  });
+  const selectionError =
+    supplierIds.length < MIN_SUPPLIERS
+      ? `Selecione ao menos ${MIN_SUPPLIERS} fornecedores para comparar`
+      : supplierIds.length > MAX_SUPPLIERS
+        ? `Selecione no máximo ${MAX_SUPPLIERS} fornecedores por comparação`
+        : '';
+
+  function toggleSupplier(id: string, checked: boolean) {
+    setSupplierIds((current) =>
+      checked ? [...new Set([...current, id])] : current.filter((entry) => entry !== id)
+    );
   }
 
   return (
@@ -411,46 +460,115 @@ export function ListsPage() {
             ) : (
               <>
                 <section className="card">
+                  <div className="mb-4">
+                    <label className="form-label" htmlFor="min-availability">
+                      Disponibilidade mínima: {minAvailability}%
+                    </label>
+                    <input
+                      id="min-availability"
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={minAvailability}
+                      onChange={(event) => setMinAvailability(Number(event.target.value))}
+                      className="w-full max-w-sm accent-primary-600"
+                      title="Mostra apenas fornecedores que atendem ao menos este percentual dos itens da lista"
+                      disabled={supplierStats.length === 0}
+                    />
+                    <p className="text-xs text-gray-500">
+                      {supplierStats.length === 0
+                        ? 'Adicione itens à lista para ver a disponibilidade de cada fornecedor.'
+                        : `${visibleSuppliers.length} de ${suppliers.length} fornecedores atendem ao filtro.`}
+                    </p>
+                  </div>
                   <fieldset>
-                    <legend className="mb-3 font-semibold">Fornecedores da comparação</legend>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                      {suppliers.map((supplier) => (
-                        <label
-                          key={supplier.id}
-                          className="flex items-center gap-2 rounded-lg border p-2 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={supplierIds.includes(supplier.id)}
-                            onChange={(event) =>
-                              setSupplierIds((current) =>
-                                event.target.checked
-                                  ? [...current, supplier.id]
-                                  : current.filter((id) => id !== supplier.id)
-                              )
-                            }
-                          />
-                          {supplier.name}
-                        </label>
-                      ))}
+                    <legend className="mb-3 font-semibold">
+                      Fornecedores da comparação
+                      <span className="ml-2 text-sm font-normal text-gray-600">
+                        {supplierIds.length} selecionados
+                      </span>
+                    </legend>
+                    {visibleSuppliers.length === 0 ? (
+                      <p className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+                        Nenhum fornecedor atende ao filtro. Reduza a disponibilidade mínima.
+                      </p>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        {visibleSuppliers.map((supplier) => {
+                          const stat = statById.get(supplier.id);
+                          return (
+                            <label
+                              key={supplier.id}
+                              className="flex items-center gap-2 rounded-lg border p-2 text-sm"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={supplierIds.includes(supplier.id)}
+                                onChange={(event) =>
+                                  toggleSupplier(supplier.id, event.target.checked)
+                                }
+                              />
+                              <span className="min-w-0">
+                                <span className="block truncate">{supplier.name}</span>
+                                {stat && (
+                                  <span className="text-xs text-gray-500">
+                                    {stat.availableItems}/{stat.totalItems} itens (
+                                    {stat.availability}%)
+                                  </span>
+                                )}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="mt-3 flex gap-4 text-sm">
+                      <button
+                        type="button"
+                        className="text-primary-700 underline"
+                        onClick={() =>
+                          setSupplierIds(
+                            visibleSuppliers
+                              .slice(0, MAX_SUPPLIERS)
+                              .map((supplier) => supplier.id)
+                          )
+                        }
+                      >
+                        Selecionar todos
+                      </button>
+                      <button
+                        type="button"
+                        className="text-primary-700 underline"
+                        onClick={() => setSupplierIds([])}
+                      >
+                        Limpar seleção
+                      </button>
                     </div>
                   </fieldset>
-                  <div className="mt-4 flex flex-wrap justify-end gap-2">
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={shareSelectedList}
-                      disabled={selected.items.length === 0}
-                    >
-                      Compartilhar lista
-                    </button>
-                    <button
-                      className="btn-primary"
-                      onClick={quoteSelectedList}
-                      disabled={quoting || selected.items.length === 0 || supplierIds.length === 0}
-                    >
-                      {quoting ? 'Cotando...' : 'Cotar lista completa'}
-                    </button>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-red-600" role="status">
+                      {selectionError}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={shareSelectedList}
+                        disabled={selected.items.length === 0}
+                      >
+                        Compartilhar lista
+                      </button>
+                      <button
+                        className="btn-primary"
+                        onClick={quoteSelectedList}
+                        disabled={
+                          quoting || selected.items.length === 0 || Boolean(selectionError)
+                        }
+                      >
+                        {quoting ? 'Cotando...' : 'Cotar lista completa'}
+                      </button>
+                    </div>
                   </div>
                 </section>
                 <section className="card">

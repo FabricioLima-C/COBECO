@@ -8,6 +8,8 @@ import { PasswordResetTokenRepository } from '../repositories/password-reset-tok
 const mockUserRepository = {
   create: vi.fn(),
   findByEmail: vi.fn(),
+  findByUsername: vi.fn(),
+  findByEmailOrUsername: vi.fn(),
   findById: vi.fn(),
   updatePassword: vi.fn(),
   softDelete: vi.fn(),
@@ -34,6 +36,7 @@ describe('AuthService', () => {
       const mockUser = {
         id: '123',
         name: 'Test User',
+        username: 'test_user',
         email: 'test@example.com',
         passwordHash: 'hashed',
         consentedAt: null,
@@ -43,18 +46,23 @@ describe('AuthService', () => {
       };
 
       (mockUserRepository.findByEmail as any).mockResolvedValue(null);
+      (mockUserRepository.findByUsername as any).mockResolvedValue(null);
       (mockUserRepository.create as any).mockResolvedValue(mockUser);
 
       const result = await authService.signUp(
         'Test User',
+        'Test_User',
         'test@example.com',
-        'SecurePass123',
+        'SecurePass123!',
         true
       );
 
       expect(result.id).toBe('123');
       expect(result.email).toBe('test@example.com');
+      expect(result.username).toBe('test_user');
       expect(mockUserRepository.findByEmail as any).toHaveBeenCalledWith('test@example.com');
+      // O username é normalizado antes de checar unicidade (RF01).
+      expect(mockUserRepository.findByUsername as any).toHaveBeenCalledWith('test_user');
       expect(mockUserRepository.create as any).toHaveBeenCalled();
     });
 
@@ -68,24 +76,42 @@ describe('AuthService', () => {
       (mockUserRepository.findByEmail as any).mockResolvedValue(existingUser);
 
       await expect(
-        authService.signUp('Test User', 'test@example.com', 'SecurePass123', true)
+        authService.signUp('Test User', 'test_user', 'test@example.com', 'SecurePass123!', true)
       ).rejects.toThrow('Este e-mail já está cadastrado');
+    });
+
+    it('should throw error if username already exists', async () => {
+      (mockUserRepository.findByEmail as any).mockResolvedValue(null);
+      (mockUserRepository.findByUsername as any).mockResolvedValue({ id: '456' });
+
+      await expect(
+        authService.signUp('Test User', 'test_user', 'outro@example.com', 'SecurePass123!', true)
+      ).rejects.toThrow('Este nome de usuário já está em uso');
     });
 
     it('should reject sign up without consent', async () => {
       await expect(
-        authService.signUp('Test User', 'test@example.com', 'SecurePass123', false)
+        authService.signUp('Test User', 'test_user', 'test@example.com', 'SecurePass123!', false)
       ).rejects.toThrow('É necessário aceitar o tratamento dos seus dados para criar a conta');
     });
   });
 
   describe('login', () => {
     it('should throw error for invalid credentials', async () => {
-      (mockUserRepository.findByEmail as any).mockResolvedValue(null);
+      (mockUserRepository.findByEmailOrUsername as any).mockResolvedValue(null);
 
       await expect(authService.login('test@example.com', 'password')).rejects.toThrow(
-        'E-mail ou senha inválidos'
+        'Credenciais inválidas'
       );
+    });
+
+    it('resolves the account by username as well as by email', async () => {
+      (mockUserRepository.findByEmailOrUsername as any).mockResolvedValue(null);
+
+      await expect(authService.login('Test_User', 'password')).rejects.toThrow(
+        'Credenciais inválidas'
+      );
+      expect(mockUserRepository.findByEmailOrUsername as any).toHaveBeenCalledWith('test_user');
     });
 
     it('should throw error if user is deleted', async () => {
@@ -96,10 +122,10 @@ describe('AuthService', () => {
         deletedAt: new Date(),
       };
 
-      (mockUserRepository.findByEmail as any).mockResolvedValue(deletedUser);
+      (mockUserRepository.findByEmailOrUsername as any).mockResolvedValue(deletedUser);
 
       await expect(authService.login('test@example.com', 'password')).rejects.toThrow(
-        'E-mail ou senha inválidos'
+        'Credenciais inválidas'
       );
     });
   });

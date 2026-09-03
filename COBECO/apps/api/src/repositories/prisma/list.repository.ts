@@ -7,13 +7,16 @@ import {
 
 const includeItems = { listItems: { orderBy: { createdAt: 'asc' as const } } };
 
+/** RF09: listas excluídas continuam na tabela, mas somem de toda leitura. */
+const notDeleted = { deletedAt: null };
+
 export class PrismaListRepository implements ListRepositoryContract {
   constructor(private readonly prisma: PrismaClient) {}
 
   async findManyByUserId(userId: string) {
     return (
       await this.prisma.productList.findMany({
-        where: { userId },
+        where: { userId, ...notDeleted },
         include: includeItems,
         orderBy: { updatedAt: 'desc' },
       })
@@ -22,7 +25,7 @@ export class PrismaListRepository implements ListRepositoryContract {
 
   async findById(userId: string, listId: string) {
     const list = await this.prisma.productList.findFirst({
-      where: { id: listId, userId },
+      where: { id: listId, userId, ...notDeleted },
       include: includeItems,
     });
     return list ? mapList(list) : null;
@@ -50,7 +53,13 @@ export class PrismaListRepository implements ListRepositoryContract {
 
   async delete(userId: string, listId: string) {
     await this.requireOwned(userId, listId);
-    await this.prisma.productList.delete({ where: { id: listId } });
+    // Exclusão lógica (RF09): preserva o histórico de cotações que referencia a
+    // lista e permite auditoria posterior.
+    await this.prisma.productList.update({
+      where: { id: listId },
+      data: { deletedAt: new Date() },
+    });
+    await this.prisma.listShare.deleteMany({ where: { listId } });
   }
 
   async duplicate(userId: string, listId: string, name: string) {
@@ -150,7 +159,7 @@ export class PrismaListRepository implements ListRepositoryContract {
       where: { token },
       include: { list: { include: includeItems } },
     });
-    if (!share) return null;
+    if (!share || share.list.deletedAt) return null;
     const list = mapList(share.list);
     return {
       id: list.id,
@@ -163,7 +172,7 @@ export class PrismaListRepository implements ListRepositoryContract {
 
   private async requireOwned(userId: string, listId: string) {
     const list = await this.prisma.productList.findFirst({
-      where: { id: listId, userId },
+      where: { id: listId, userId, ...notDeleted },
       include: includeItems,
     });
     if (!list) throw new Error('LIST_NOT_FOUND');

@@ -14,6 +14,19 @@ export class UserRepository implements UserRepositoryContract {
     });
   }
 
+  async findByUsername(username: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { username: username.trim().toLowerCase() },
+    });
+  }
+
+  async findByEmailOrUsername(identifier: string): Promise<User | null> {
+    const normalized = identifier.trim().toLowerCase();
+    return this.prisma.user.findFirst({
+      where: { OR: [{ email: normalized }, { username: normalized }] },
+    });
+  }
+
   async findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { id },

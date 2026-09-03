@@ -16,7 +16,13 @@ export class AuthService {
     private tokenRepository: PasswordResetTokenRepositoryContract
   ) {}
 
-  async signUp(name: string, email: string, password: string, consent: boolean) {
+  async signUp(
+    name: string,
+    username: string,
+    email: string,
+    password: string,
+    consent: boolean
+  ) {
     if (consent !== true) {
       throw new AppError(
         'CONSENT_REQUIRED',
@@ -26,14 +32,28 @@ export class AuthService {
     }
 
     email = email.trim().toLowerCase();
+    // RF01: o username é único e comparado sem distinção de caixa; guardá-lo já
+    // normalizado é o que torna a constraint do banco realmente efetiva.
+    username = username.trim().toLowerCase();
+
     const existingUser = await this.userRepository.findByEmail(email);
     if (existingUser) {
       throw new AppError('EMAIL_ALREADY_REGISTERED', 'Este e-mail já está cadastrado', 400);
     }
 
+    const existingUsername = await this.userRepository.findByUsername(username);
+    if (existingUsername) {
+      throw new AppError(
+        'USERNAME_ALREADY_REGISTERED',
+        'Este nome de usuário já está em uso',
+        400
+      );
+    }
+
     const passwordHash = await hash(password);
     const user = await this.userRepository.create({
       name,
+      username,
       email,
       passwordHash,
     });
@@ -41,20 +61,21 @@ export class AuthService {
     return {
       id: user.id,
       name: user.name,
+      username: user.username,
       email: user.email,
     };
   }
 
-  async login(email: string, password: string) {
-    email = email.trim().toLowerCase();
-    const user = await this.userRepository.findByEmail(email);
+  /** RF02: `identifier` é o e-mail ou o username do usuário. */
+  async login(identifier: string, password: string) {
+    const user = await this.userRepository.findByEmailOrUsername(identifier.trim().toLowerCase());
     if (!user || user.deletedAt) {
-      throw new AppError('INVALID_CREDENTIALS', 'E-mail ou senha inválidos', 401);
+      throw new AppError('INVALID_CREDENTIALS', 'Credenciais inválidas', 401);
     }
 
     const passwordValid = await verify(user.passwordHash, password);
     if (!passwordValid) {
-      throw new AppError('INVALID_CREDENTIALS', 'E-mail ou senha inválidos', 401);
+      throw new AppError('INVALID_CREDENTIALS', 'Credenciais inválidas', 401);
     }
 
     const accessToken = this.generateAccessToken(user.id, user.email);
@@ -66,6 +87,7 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
+        username: user.username,
         email: user.email,
       },
     };
@@ -119,6 +141,7 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
+        username: user.username,
         email: user.email,
       },
     };

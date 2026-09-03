@@ -19,8 +19,8 @@ export class AuthController {
 
   async signUp(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name, email, password, consent } = req.body;
-      const user = await this.authService.signUp(name, email, password, consent);
+      const { name, username, email, password, consent } = req.body;
+      const user = await this.authService.signUp(name, username, email, password, consent);
       res.status(201).json(user);
     } catch (error) {
       next(error);
@@ -29,8 +29,10 @@ export class AuthController {
 
   async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, password } = req.body;
-      const result = await this.authService.login(email, password);
+      // RF02: o corpo traz `identifier` (e-mail ou username); `email` segue
+      // aceito para clientes anteriores à v2.1.
+      const { identifier, email, password } = req.body;
+      const result = await this.authService.login(identifier || email, password);
 
       res.cookie(REFRESH_COOKIE, result.refreshToken, refreshCookieOptions());
 

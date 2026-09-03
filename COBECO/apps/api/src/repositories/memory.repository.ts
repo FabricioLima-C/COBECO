@@ -91,6 +91,20 @@ export class MemoryUserRepository implements UserRepositoryContract {
     return user ? { ...user } : null;
   }
 
+  async findByUsername(username: string): Promise<UserRecord | null> {
+    const normalized = username.trim().toLowerCase();
+    const user = [...this.users.values()].find((candidate) => candidate.username === normalized);
+    return user ? { ...user } : null;
+  }
+
+  async findByEmailOrUsername(identifier: string): Promise<UserRecord | null> {
+    const normalized = identifier.trim().toLowerCase();
+    const user = [...this.users.values()].find(
+      (candidate) => candidate.email === normalized || candidate.username === normalized
+    );
+    return user ? { ...user } : null;
+  }
+
   async findById(id: string): Promise<UserRecord | null> {
     const user = this.users.get(id);
     return user ? { ...user } : null;
@@ -232,7 +246,7 @@ export class MemoryRetailerRepository implements RetailerRepositoryContract {
 }
 
 export class MemoryListRepository implements ListRepositoryContract {
-  private readonly lists = new Map<string, ProductListRecord>();
+  private readonly lists = new Map<string, ProductListRecord & { deletedAt: Date | null }>();
   private readonly shares = new Map<
     string,
     { token: string; userId: string; listId: string; createdAt: Date }
@@ -240,14 +254,14 @@ export class MemoryListRepository implements ListRepositoryContract {
 
   async findManyByUserId(userId: string): Promise<ProductListRecord[]> {
     return [...this.lists.values()]
-      .filter((list) => list.userId === userId)
+      .filter((list) => list.userId === userId && !list.deletedAt)
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
       .map(cloneList);
   }
 
   async findById(userId: string, listId: string): Promise<ProductListRecord | null> {
     const list = this.lists.get(listId);
-    return list && list.userId === userId ? cloneList(list) : null;
+    return list && list.userId === userId && !list.deletedAt ? cloneList(list) : null;
   }
 
   async create(
@@ -256,13 +270,14 @@ export class MemoryListRepository implements ListRepositoryContract {
     categoryId: string | null = null
   ): Promise<ProductListRecord> {
     const now = new Date();
-    const list: ProductListRecord = {
+    const list = {
       id: randomUUID(),
       userId,
       name,
       categoryId,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
       items: [],
     };
     this.lists.set(list.id, list);
@@ -277,20 +292,25 @@ export class MemoryListRepository implements ListRepositoryContract {
   }
 
   async delete(userId: string, listId: string): Promise<void> {
-    this.requireList(userId, listId);
-    this.lists.delete(listId);
+    // Exclusão lógica (RF09), espelhando o repositório Prisma.
+    const list = this.requireList(userId, listId);
+    list.deletedAt = new Date();
+    for (const [token, share] of this.shares) {
+      if (share.listId === listId) this.shares.delete(token);
+    }
   }
 
   async duplicate(userId: string, listId: string, name: string): Promise<ProductListRecord> {
     const source = this.requireList(userId, listId);
     const now = new Date();
-    const duplicate: ProductListRecord = {
+    const duplicate = {
       id: randomUUID(),
       userId,
       name,
       categoryId: source.categoryId,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
       items: source.items.map((item) => ({ ...item, id: randomUUID(), listId: '' })),
     };
     duplicate.items.forEach((item) => (item.listId = duplicate.id));
@@ -377,7 +397,7 @@ export class MemoryListRepository implements ListRepositoryContract {
     const share = this.shares.get(token);
     if (!share) return null;
     const list = this.lists.get(share.listId);
-    if (!list || list.userId !== share.userId) return null;
+    if (!list || list.userId !== share.userId || list.deletedAt) return null;
     return {
       id: list.id,
       name: list.name,
@@ -387,9 +407,9 @@ export class MemoryListRepository implements ListRepositoryContract {
     };
   }
 
-  private requireList(userId: string, listId: string): ProductListRecord {
+  private requireList(userId: string, listId: string) {
     const list = this.lists.get(listId);
-    if (!list || list.userId !== userId) throw new Error('LIST_NOT_FOUND');
+    if (!list || list.userId !== userId || list.deletedAt) throw new Error('LIST_NOT_FOUND');
     return list;
   }
 }

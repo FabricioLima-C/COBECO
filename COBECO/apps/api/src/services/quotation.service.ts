@@ -14,9 +14,10 @@ import {
   QuotationRepositoryContract,
 } from '../repositories/repository.contracts';
 import { CatalogRepositoryContract } from '../repositories/repository.contracts';
-import { calculateAvailability } from '../domain/availability';
+import { calculateAvailability, RequestedItem } from '../domain/availability';
 import { groupByCoverageProfile } from '../domain/grouping';
 import { calculateGroupBudgets, GroupBudget, selectBestGroup } from '../domain/budget';
+import { MAX_SUPPLIERS, MIN_SUPPLIERS } from '../validators/quotation.validator';
 
 export interface QuotationHighlights {
   lowestPriceIds: string[];
@@ -74,6 +75,16 @@ export interface QuotationComparisonResponse {
   items: QuotationComparisonItem[];
 }
 
+/** RF12: disponibilidade de cada fornecedor perante os itens de uma lista. */
+export interface SupplierAvailabilitySummary {
+  id: string;
+  name: string;
+  availableItems: number;
+  totalItems: number;
+  /** Percentual de 0 a 100, com duas casas. */
+  availability: number;
+}
+
 export class QuotationService {
   constructor(
     private readonly priceService: PriceIntegrationService,
@@ -105,10 +116,14 @@ export class QuotationService {
     }
   }
 
+  /**
+   * `supplierIds` só governa o caminho de catálogo (RF11); a cotação por
+   * provedores externos não tem fornecedores para selecionar.
+   */
   async quoteList(
     userId: string,
     listId: string,
-    supplierIds?: string[]
+    supplierIds: string[] = []
   ): Promise<QuotationResponse> {
     const list = await this.listRepository.findById(userId, listId);
     if (!list) throw new AppError('LIST_NOT_FOUND', 'Lista não encontrada', 404);
@@ -144,27 +159,107 @@ export class QuotationService {
     }
   }
 
-  private async quoteListFromCatalog(
+  /**
+   * RF12: quantos itens da lista cada fornecedor da categoria consegue atender.
+   * Alimenta a tela de seleção antes de o orçamento ser calculado.
+   */
+  async listSupplierAvailability(
     userId: string,
-    list: ProductListRecord,
-    supplierIds?: string[]
-  ): Promise<QuotationResponse> {
+    listId: string
+  ): Promise<SupplierAvailabilitySummary[]> {
+    const list = await this.listRepository.findById(userId, listId);
+    if (!list) throw new AppError('LIST_NOT_FOUND', 'Lista não encontrada', 404);
+    if (!this.catalogRepository)
+      throw new AppError('CATALOG_UNAVAILABLE', 'Catálogo indisponível', 503);
+
+    const { categoryId, suppliers, requestedItems } = await this.resolveCatalogContext(list);
+    const offers = await this.catalogRepository.findOffers(
+      categoryId,
+      suppliers.map((supplier) => supplier.id)
+    );
+    const totalItems = requestedItems.length;
+
+    return calculateAvailability(requestedItems, suppliers, offers)
+      .map(({ supplier, availableItems }) => ({
+        id: supplier.id,
+        name: supplier.name,
+        availableItems: availableItems.length,
+        totalItems,
+        availability:
+          totalItems === 0
+            ? 0
+            : Math.round((availableItems.length / totalItems) * 10_000) / 100,
+      }))
+      // RF11: ordenação alfabética é o padrão da tela de seleção.
+      .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+  }
+
+  /**
+   * Categoria, fornecedores ativos e itens da lista já resolvidos contra o
+   * catálogo — compartilhado pela seleção (RF12) e pelo cálculo (RF13).
+   */
+  private async resolveCatalogContext(list: ProductListRecord): Promise<{
+    categoryId: string;
+    suppliers: Awaited<ReturnType<CatalogRepositoryContract['findSuppliersByCategory']>>;
+    requestedItems: RequestedItem[];
+  }> {
     const catalogRepository = this.catalogRepository;
     if (!catalogRepository) throw new AppError('CATALOG_UNAVAILABLE', 'Catálogo indisponível', 503);
     const categories = await catalogRepository.findCategories();
     const categoryId = list.categoryId || categories[0]?.id;
     if (!categoryId) throw new AppError('CATEGORY_NOT_FOUND', 'Nenhuma categoria cadastrada', 404);
 
-    const [allSuppliers, products] = await Promise.all([
+    const [suppliers, products] = await Promise.all([
       catalogRepository.findSuppliersByCategory(categoryId),
       catalogRepository.findProductsByCategory(categoryId),
     ]);
-    const selected = supplierIds?.length
-      ? allSuppliers.filter((supplier) => supplierIds.includes(supplier.id))
-      : allSuppliers;
-    if (!selected.length)
-      throw new AppError('SUPPLIERS_REQUIRED', 'Selecione ao menos um fornecedor válido', 400);
-    if (supplierIds?.some((id) => !selected.some((supplier) => supplier.id === id))) {
+    const productsByName = new Map(
+      products.map((product) => [normalizeDescription(product.name), product.id])
+    );
+
+    return {
+      categoryId,
+      suppliers,
+      requestedItems: list.items.map((item) => ({
+        id: item.id,
+        productId:
+          item.productId || productsByName.get(normalizeDescription(item.description)) || null,
+        description: item.description,
+        quantity: item.quantity,
+      })),
+    };
+  }
+
+  private async quoteListFromCatalog(
+    userId: string,
+    list: ProductListRecord,
+    supplierIds: string[]
+  ): Promise<QuotationResponse> {
+    const catalogRepository = this.catalogRepository;
+    if (!catalogRepository) throw new AppError('CATALOG_UNAVAILABLE', 'Catálogo indisponível', 503);
+
+    // RF11 é validado aqui, e não só no schema da rota, para que a regra valha
+    // para qualquer chamador do serviço (§4.1 do refinamento v2.1).
+    const uniqueIds = [...new Set(supplierIds ?? [])];
+    if (uniqueIds.length < MIN_SUPPLIERS) {
+      throw new AppError(
+        'SUPPLIERS_REQUIRED',
+        `Selecione ao menos ${MIN_SUPPLIERS} fornecedores para comparar`,
+        400
+      );
+    }
+    if (uniqueIds.length > MAX_SUPPLIERS) {
+      throw new AppError(
+        'TOO_MANY_SUPPLIERS',
+        `Selecione no máximo ${MAX_SUPPLIERS} fornecedores por comparação`,
+        400
+      );
+    }
+
+    const { categoryId, suppliers: allSuppliers, requestedItems } =
+      await this.resolveCatalogContext(list);
+    const selected = allSuppliers.filter((supplier) => uniqueIds.includes(supplier.id));
+    if (uniqueIds.some((id) => !selected.some((supplier) => supplier.id === id))) {
       throw new AppError(
         'INVALID_SUPPLIER',
         'A seleção contém fornecedor inválido para a categoria',
@@ -172,16 +267,6 @@ export class QuotationService {
       );
     }
 
-    const productsByName = new Map(
-      products.map((product) => [normalizeDescription(product.name), product.id])
-    );
-    const requestedItems = list.items.map((item) => ({
-      id: item.id,
-      productId:
-        item.productId || productsByName.get(normalizeDescription(item.description)) || null,
-      description: item.description,
-      quantity: item.quantity,
-    }));
     const offers = await catalogRepository.findOffers(
       categoryId,
       selected.map((supplier) => supplier.id)

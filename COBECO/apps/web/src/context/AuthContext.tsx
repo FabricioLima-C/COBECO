@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 interface User {
   id: string;
   name: string;
+  username: string;
   email: string;
 }
 
@@ -10,8 +11,15 @@ interface AuthContextType {
   user: User | null;
   accessToken: string | null;
   isLoading: boolean;
-  signUp: (name: string, email: string, password: string, consent: boolean) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  signUp: (
+    name: string,
+    username: string,
+    email: string,
+    password: string,
+    consent: boolean
+  ) => Promise<void>;
+  /** RF02: `identifier` é o e-mail ou o nome de usuário. */
+  login: (identifier: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -41,28 +49,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const signUp = useCallback(async (name: string, email: string, password: string, consent: boolean) => {
-    const response = await fetch('/api/auth/sign-up', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, consent }),
-    });
+  const signUp = useCallback(
+    async (
+      name: string,
+      username: string,
+      email: string,
+      password: string,
+      consent: boolean
+    ) => {
+      const response = await fetch('/api/auth/sign-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, username, email, password, consent }),
+      });
 
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error?.message || 'Erro ao cadastrar');
-    }
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || 'Erro ao cadastrar');
+      }
 
-    // Auto-login after signup
-    await login(email, password);
-  }, []);
+      // Auto-login after signup
+      await login(email, password);
+    },
+    []
+  );
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
 
     if (!response.ok) {

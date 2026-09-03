@@ -100,6 +100,14 @@ export interface CatalogProduct {
   unit: string;
   active: boolean;
 }
+/** RF12: quanto da lista cada fornecedor consegue atender. */
+export interface SupplierAvailability {
+  id: string;
+  name: string;
+  availableItems: number;
+  totalItems: number;
+  availability: number;
+}
 export interface QuotationGroup {
   groupId: string;
   supplierIds: string[];
@@ -264,9 +272,13 @@ class ApiService {
     return response.data;
   }
 
-  async quoteList(listId: string, supplierIds?: string[]): Promise<QuotationResponse> {
+  async quoteList(listId: string, supplierIds: string[]): Promise<QuotationResponse> {
     const response = await this.client.post(`/platform/lists/${listId}/quote`, { supplierIds });
     return response.data;
+  }
+
+  async getListSupplierAvailability(listId: string): Promise<SupplierAvailability[]> {
+    return (await this.client.get(`/platform/lists/${listId}/suppliers`)).data;
   }
 
   async getQuotationHistory(page = 1, pageSize = 10): Promise<PaginatedQuotationHistory> {

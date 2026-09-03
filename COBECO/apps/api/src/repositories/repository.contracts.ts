@@ -1,6 +1,7 @@
 export interface UserRecord {
   id: string;
   name: string;
+  username: string;
   email: string;
   passwordHash: string;
   consentedAt: Date | null;
@@ -11,6 +12,7 @@ export interface UserRecord {
 
 export interface UserCreateData {
   name: string;
+  username: string;
   email: string;
   passwordHash: string;
 }
@@ -18,6 +20,9 @@ export interface UserCreateData {
 export interface UserRepositoryContract {
   create(data: UserCreateData): Promise<UserRecord>;
   findByEmail(email: string): Promise<UserRecord | null>;
+  findByUsername(username: string): Promise<UserRecord | null>;
+  /** RF02: resolve o login tanto por e-mail quanto por username. */
+  findByEmailOrUsername(identifier: string): Promise<UserRecord | null>;
   findById(id: string): Promise<UserRecord | null>;
   updatePassword(id: string, passwordHash: string): Promise<UserRecord>;
   softDelete(id: string): Promise<UserRecord>;

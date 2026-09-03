@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
+  // RF02: aceita e-mail ou nome de usuário.
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -18,8 +19,11 @@ export function LoginPage() {
     setGeneralError('');
     setErrors({});
 
-    if (!email.trim()) {
-      setErrors((prev) => ({ ...prev, email: 'E-mail é obrigatório' }));
+    if (!identifier.trim()) {
+      setErrors((prev) => ({
+        ...prev,
+        identifier: 'Informe seu e-mail ou nome de usuário',
+      }));
       return;
     }
     if (!password.trim()) {
@@ -29,7 +33,7 @@ export function LoginPage() {
 
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login(identifier.trim(), password);
       navigate('/platform');
     } catch (error) {
       setGeneralError(apiService.getErrorMessage(error));
@@ -54,12 +58,11 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           <FormField
-            label="E-mail"
-            type="email"
-            placeholder="seu@email.com"
-            value={email}
-            onChange={setEmail}
-            error={errors.email}
+            label="E-mail ou nome de usuário"
+            placeholder="seu@email.com ou joao_silva"
+            value={identifier}
+            onChange={setIdentifier}
+            error={errors.identifier}
             required
           />
 

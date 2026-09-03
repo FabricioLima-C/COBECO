@@ -6,6 +6,7 @@ import { apiService } from '../services/api';
 
 export function SignUpPage() {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,6 +22,13 @@ export function SignUpPage() {
 
     if (!name.trim()) {
       newErrors.name = 'Nome é obrigatório';
+    }
+    // RF01: 3 a 30 caracteres, alfanuméricos e underscore.
+    if (username.trim().length < 3 || username.trim().length > 30) {
+      newErrors.username = 'Nome de usuário deve ter de 3 a 30 caracteres';
+    }
+    if (!/^[A-Za-z0-9_]*$/.test(username.trim())) {
+      newErrors.username = 'Use apenas letras, números e underscore';
     }
     if (!email.trim()) {
       newErrors.email = 'E-mail é obrigatório';
@@ -39,6 +47,9 @@ export function SignUpPage() {
     }
     if (!/\d/.test(password)) {
       newErrors.password = 'Senha deve conter ao menos um número';
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      newErrors.password = 'Senha deve conter ao menos um caractere especial';
     }
     if (password !== confirmPassword) {
       newErrors.confirmPassword = 'Senhas não correspondem';
@@ -61,7 +72,7 @@ export function SignUpPage() {
 
     setIsLoading(true);
     try {
-      await signUp(name, email, password, consent);
+      await signUp(name, username.trim(), email, password, consent);
       navigate('/platform');
     } catch (error) {
       setGeneralError(apiService.getErrorMessage(error));
@@ -95,6 +106,15 @@ export function SignUpPage() {
           />
 
           <FormField
+            label="Nome de usuário"
+            placeholder="ex.: joao_silva"
+            value={username}
+            onChange={setUsername}
+            error={errors.username}
+            required
+          />
+
+          <FormField
             label="E-mail"
             type="email"
             placeholder="seu@email.com"
@@ -107,7 +127,7 @@ export function SignUpPage() {
           <FormField
             label="Senha"
             type="password"
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Mínimo 8 caracteres, com número e símbolo"
             value={password}
             onChange={setPassword}
             error={errors.password}

@@ -1,3 +1,304 @@
+# 📊 RELATÓRIO DE ESPECIFICAÇÃO - COBECO - Cotação de Bens de Consumo (MVP)
+
+**Versão:** 2.1 (Refinamento Crítico de Requisitos)  
+**Data:** 01 de Setembro de 2026  
+**Status:** Em processo de revisão
+**Esperado** ✅ Aprovado para Desenvolvimento (Single Source of Truth - SSOT)  
+**Público-Alvo:** Equipe de Desenvolvimento, QA, Product Owner e Stakeholders
+
+---
+
+## 📋 SUMÁRIO EXECUTIVO
+
+Este documento apresenta a especificação oficial e consolidada do MVP "COBECO" - Cotação de Bens de Consumo, uma aplicação web desktop-first que permite usuários criar listas de compras e comparar orçamentos entre múltiplos fornecedores, destacando a opção mais econômica e evidenciando produtos ausentes.
+
+**Objetivo do MVP:** Validar a proposta de valor com implementação rápida (4-6 semanas), simplificando funcionalidades complexas e eliminando dependências externas desnecessárias, garantindo ao mesmo tempo o controle e a liberdade do usuário (Princípio de Usabilidade de Nielsen #3).
+
+**Decisões Críticas Tomadas (Histórico Consolidado):**
+
+- ✅ **Motor de paridade simplificado:** Tabela flat vs. agrupamento complexo por cobertura.
+- ✅ **Controle do Usuário na Comparação (NOVO v2.1):** O usuário seleciona manualmente quais fornecedores comparar (mínimo 2), resolvendo gap crítico de UX.
+- ✅ **Filtro de Disponibilidade (NOVO v2.1):** Slider para filtrar fornecedores que atendem a uma % mínima de itens da lista.
+- ✅ **Validação de email:** Por formato no cadastro (elimina dependência externa no onboarding), mantendo envio real apenas para recuperação de senha (Resend).
+- ✅ **Exportação reduzida:** CSV + impressão via navegador (elimina geração de PDF nativo).
+- ✅ **Qualidade focada:** CI/CD com testes unitários críticos (elimina BDD/E2E no MVP).
+
+---
+
+## 🎯 1. CONTEXTO E OBJETIVOS
+
+### 1.1. Problema
+
+Usuários que precisam comprar múltiplos itens enfrentam o trabalho manual de:
+
+1. Listar produtos desejados e quantidades.
+2. Consultar preços em múltiplos fornecedores.
+3. Comparar disponibilidade (nem todos têm todos os produtos).
+4. Calcular qual combinação resulta em menor custo total.
+
+### 1.2. Solução Proposta
+
+Aplicação web que automatiza esse processo:
+
+- Usuário cria lista de itens com quantidades.
+- Sistema cruza com catálogo base de fornecedores (previamente populado via seed).
+- **Usuário seleciona e filtra** quais fornecedores deseja comparar.
+- Sistema exibe tabela comparativa (flat) com: fornecedor, itens disponíveis, itens ausentes e preço total.
+- Destaca a opção mais econômica e permite exportar (CSV) ou imprimir.
+
+### 1.3. Escopo do MVP
+
+**INCLUIDO:**
+
+- Gestão de usuários (cadastro, login, logout, recuperação de senha).
+- CRUD completo de listas de compras com persistência (PostgreSQL).
+- **Seleção e filtragem dinâmica de fornecedores para comparação.**
+- Motor de comparação simplificado (tabela flat).
+- Exportação CSV + impressão via navegador.
+- Seed de dados (10 fornecedores, 50 produtos).
+- Testes unitários críticos + CI básico.
+
+**EXCLUIDO (Backlog Pós-MVP):**
+
+- Apps móveis (iOS/Android/PWA).
+- Integração com LLMs ou Web scraping em tempo real.
+- Processamento de pagamentos ou roteirização logística.
+- Geração de PDF nativo ou validação de email real no cadastro.
+- Testes BDD/E2E.
+
+---
+
+## 🔐 2. REQUISITOS FUNCIONAIS (RF) - VERSÃO FINAL v2.1
+
+### 2.1. Autenticação e Gestão de Usuários
+
+| ID       | Requisito                                                                                      | Guard-Rails                                                                                                                                                                           | Validação                                                                                                                    |
+| :------- | :--------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- |
+| **RF01** | **Cadastro de Usuário**<br>Campos: username (único), nome completo, email, senha + confirmação | - Username: 3-30 chars, alfanumérico + underscore<br>- Nome: 2-100 chars<br>- Email: formato válido (regex), max 255 chars<br>- Senha: mín 8 chars, 1 maiúscula, 1 número, 1 especial | - Username/Email únicos (constraint DB)<br>- Senha hasheada (bcrypt, salt=12)<br>- Mensagens de erro genéricas por segurança |
+| **RF02** | **Login**<br>Email ou username + senha                                                         | - Rate limiting: 5 tentativas/15min por IP<br>- Bloqueio temporário após falhas<br>- Mensagem genérica: "Credenciais inválidas"                                                       | - Validação de formato pré-envio<br>- Token JWT (1h) + Refresh token httpOnly (7 dias)                                       |
+| **RF03** | **Logout**<br>Encerrar sessão ativa                                                            | - Invalidar refresh token no backend<br>- Limpar storage do frontend<br>- Redirecionar para /login                                                                                    | - Endpoint POST /auth/logout (204 No Content)                                                                                |
+| **RF04** | **Recuperação de Senha**<br>Enviar link de reset via email                                     | - Token de reset: 15min de expiração<br>- Máx. 3 solicitações/hora por email<br>- Link único e de uso único                                                                           | - Gerar token criptograficamente seguro<br>- Enviar via Resend (free tier)<br>- Nova senha segue regras do RF01              |
+| **RF05** | **Perfil do Usuário**<br>Visualizar e editar dados pessoais                                    | - Email só alterado com validação<br>- Senha antiga confirmada para alteração<br>- Exclusão requer digitar "EXCLUIR"                                                                  | - Soft delete (marcar como inativo)<br>- Confirmação via modal                                                               |
+
+### 2.2. Gestão de Listas de Compras
+
+| ID       | Requisito                                                                      | Guard-Rails                                                                                                                                           | Validação                                                                                  |
+| :------- | :----------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- |
+| **RF06** | **Criar Lista**<br>Nome da lista + adicionar itens (produto + quantidade)      | - Nome: 1-100 chars, obrigatório<br>- Mínimo 1 item para salvar<br>- Quantidade: inteiro positivo (1-9999)<br>- Produto deve existir no catálogo (FK) | - Verificar existência do produto no DB<br>- Calcular subtotal (qtd × preço)               |
+| **RF07** | **Listar Listas**<br>Mostrar todas as listas do usuário                        | - Paginação: 20 itens/página<br>- Ordenação: data de criação (recente primeiro)<br>- Busca por nome (case-insensitive)                                | - Exibir: nome, data, qtd itens, valor estimado<br>- Mensagem de estado vazio se aplicável |
+| **RF08** | **Editar Lista**<br>Alterar nome, adicionar/remover itens, ajustar quantidades | - Validação de quantidade (RF06)<br>- Confirmação antes de remover item<br>- Salvamento automático (draft) a cada 30s                                 | - Modal de confirmação para remoção<br>- Atualizar valor total em tempo real               |
+| **RF09** | **Excluir Lista**<br>Remover lista permanentemente (lógico)                    | - Confirmação obrigatória (modal)<br>- Digitar nome da lista para confirmar<br>- Soft delete (marcar como inativo)                                    | - Botão desabilitado até confirmação exata<br>- Toast de sucesso após exclusão             |
+| **RF10** | **Buscar Produtos**<br>Autocomplete ao digitar nome do produto                 | - Mínimo 2 caracteres para iniciar busca<br>- Máximo 10 resultados exibidos<br>- Debounce de 300ms                                                    | - Query com `LIKE '%termo%'`<br>- Cache de resultados no frontend (5min)                   |
+
+### 2.3. Comparação de Fornecedores (REFINADO v2.1)
+
+| ID       | Requisito                                                                                           | Guard-Rails                                                                                                                                                                                 | Validação                                                                                                                                      |
+| :------- | :-------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RF11** | **Selecionar Fornecedores**<br>Escolher quais fornecedores comparar                                 | - **Mínimo 2 fornecedores obrigatórios**<br>- Máximo N (total de fornecedores mockados) fornecedores<br>- Checkboxes com nome e % disponibilidade<br>- Opções "Selecionar Todos" / "Limpar" | - Validar mínimo 2 antes de comparar<br>- Exibir erro se <2 selecionados<br>- Seleção é **temporária por sessão** (não persiste no DB)         |
+| **RF12** | **Filtrar por Disponibilidade**<br>Opcional: mostrar apenas fornecedores com X% dos itens           | - Slider ou input numérico (0-100%)<br>- Padrão: 0% (mostrar todos)<br>- Aplicar filtro em tempo real                                                                                       | - Validação: valor entre 0-100<br>- Atualizar lista de checkboxes dinamicamente<br>- Manter seleção anterior se ainda válida                   |
+| **RF13** | **Calcular Orçamento**<br>Gerar tabela comparativa dos fornecedores selecionados                    | - Validar mínimo 2 selecionados (RF11)<br>- Timeout de 10s para cálculo<br>- Cache de resultados por 5min                                                                                   | - Validar se lista pertence ao usuário<br>- Calcular: itens disponíveis, ausentes, preço total<br>- Ordenar por preço total (menor para maior) |
+| **RF14** | **Visualizar Resultados**<br>Tabela com: Fornecedor, Itens Disponíveis, Itens Ausentes, Preço Total | - Destacar linha com menor preço (verde)<br>- Exibir % de disponibilidade (ex: "7/9 itens")<br>- Tooltip explicando itens ausentes                                                          | - Formatação de moeda (BRL)<br>- Ícone de alerta para itens ausentes<br>- Botões "Exportar" e "Imprimir" sempre visíveis                       |
+
+### 2.4. Exportação e Impressão
+
+| ID       | Requisito                                                  | Guard-Rails                                                                                                                      | Validação                                                                                                             |
+| :------- | :--------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **RF15** | **Exportar CSV**<br>Baixar arquivo com dados da comparação | - Nome: `lista_nome_YYYYMMDD.csv`<br>- Encoding: UTF-8 com BOM<br>- Delimitador: ponto e vírgula (;)<br>- Máximo 1MB por arquivo | - Cabeçalho: Fornecedor, Itens Disp., Itens Ausentes, Preço Total<br>- Escapar caracteres especiais (aspas, vírgulas) |
+| **RF16** | **Imprimir**<br>View otimizada para Ctrl+P                 | - CSS `@media print` oculta menus/botões<br>- Formatação de tabela para A4<br>- Quebras de página automáticas                    | - Chama `window.print()`<br>- Manter cores para destacar melhor oferta<br>- Incluir data/hora da impressão            |
+
+---
+
+## ⚙️ 3. REQUISITOS NÃO FUNCIONAIS (RNF) - VERSÃO FINAL v2.1
+
+### 3.1. Arquitetura e Código
+
+| ID        | Requisito                                                     | Guard-Rails                                                                                             | Métrica de Sucesso                                                                   |
+| :-------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------- |
+| **RNF01** | **Clean Architecture**<br>Backend NestJS com camadas claras   | - Separação: Domain → UseCase → Adapter → Framework<br>- Injeção de dependência obrigatória             | - Code review aprova estrutura<br>- Testes unitários isolam camadas                  |
+| **RNF02** | **SDD**<br>OpenAPI definido antes de implementar              | - Contratos OpenAPI versionados<br>- Geração automática de tipos TS<br>- Validação de request/response  | - Frontend e backend usam mesmos tipos<br>- Swagger sempre atualizado em `/api/docs` |
+| **RNF03** | **ACID com PostgreSQL**<br>Integridade transacional garantida | - Writes em transações<br>- Foreign keys com CASCADE/RESTRICT<br>- Migrations versionadas e reversíveis | - Zero dados órfãos no DB<br>- Rollback automático em falhas                         |
+
+### 3.2. UI/UX e Usabilidade
+
+| ID        | Requisito                                                       | Guard-Rails                                                                                                      | Métrica de Sucesso                                                          |
+| :-------- | :-------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| **RNF04** | **Desktop-First**<br>Layout exclusivo para telas ≥1024px        | - Breakpoint mínimo: 1024px<br>- Sem responsividade mobile<br>- Grid system com 12 colunas                       | - Layout não quebra em 1024px+<br>- Acessível por teclado (Tab, Enter, Esc) |
+| **RNF05** | **Feedback Visual**<br>Toasts, skeletons, modais                | - Toasts: sucesso (verde), erro (vermelho)<br>- Skeletons para loading >300ms<br>- Modais para ações destrutivas | - Tempo de feedback <100ms<br>- Zero "dead clicks"                          |
+| **RNF06** | **Validação em Tempo Real**<br>Campos validados antes do submit | - Validação no `onBlur`<br>- Mensagens de erro abaixo do campo<br>- Botão submit desabilitado se inválido        | - Zero submits com dados inválidos                                          |
+
+### 3.3. Qualidade, Dados e Segurança
+
+| ID        | Requisito                                                  | Guard-Rails                                                                                                        | Métrica de Sucesso                                   |
+| :-------- | :--------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- |
+| **RNF07** | **Testes Unitários**<br>Cobertura de casos de uso críticos | - Cobertura mínima: 80%<br>- Testes de: auth, cálculo de preço, validações                                         | - Cobertura >80% no SonarQube<br>- Zero testes flaky |
+| **RNF08** | **CI Básico**<br>GitHub Actions rodando testes             | - Pipeline: lint → test → build<br>- Bloqueia merge se testes falharem                                             | - Pipeline completo <5min                            |
+| **RNF09** | **Seed de Dados**<br>10 fornecedores + 50 produtos         | - Dados realistas (BRL, nomes BR)<br>- Variação de preços (±20%)<br>- Alguns fornecedores sem todos os produtos    | - Seed popula DB em <10s                             |
+| **RNF10** | **Performance**<br>Tempos de resposta aceitáveis           | - API response time <500ms (p95)<br>- FCP <1.5s<br>- Bundle size <500KB (gzipped)                                  | - Lighthouse score >90                               |
+| **RNF11** | **Autenticação Segura**<br>JWT + refresh tokens            | - Access token: 1h, Refresh: 7 dias (httpOnly)<br>- Senhas com bcrypt (salt=12)<br>- HTTPS obrigatório em produção | - Zero tokens vazados em logs                        |
+| **RNF12** | **Proteção contra Ataques**<br>CSRF, XSS, SQL Injection    | - Sanitização de inputs (DOMPurify)<br>- Parameterized queries (Prisma ORM)<br>- CSP headers                       | - Zero vulnerabilidades críticas no OWASP ZAP        |
+| **RNF13** | **Rate Limiting**<br>Proteção contra abuso                 | - Auth: 5 req/15min por IP<br>- API geral: 100 req/min por usuário<br>- Retornar 429 Too Many Requests             | - Usuários legítimos não bloqueados                  |
+
+---
+
+## 🛠️ 4. STACK TECNOLÓGICA DEFINIDA
+
+| Camada          | Tecnologia                                                                                        | Versão                                                                        | Justificativa                                                                        |
+| :-------------- | :------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------- | :----------------------------------------------------------------------------------- |
+| **Frontend**    | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form, Zod            | 18.x / 5.x / 5.x / 3.x / Latest / 5.x / 7.x / 3.x                             | Ecossistema maduro, type-safety end-to-end, build rápido, componentes acessíveis.    |
+| **Backend**     | Node.js, NestJS, TypeScript, Prisma ORM, PostgreSQL, Passport.js, bcrypt, class-validator         | 20.x (LTS) / 10.x / 5.x / 5.x / 16.x / 0.7.x / 5.x / 0.14.x                   | Clean Architecture por padrão, type-safe queries, ACID, industry standard para auth. |
+| **Infra/Tools** | GitHub Actions, Docker, Docker Compose, Resend, Mailhog, SonarQube, ESLint, Prettier, Husky, Jest | Latest / 24.x / 2.x / Free tier / Latest / Community / 8.x / 3.x / 9.x / 29.x | CI/CD gratuito, consistência de ambiente, análise de código, free tiers adequados.   |
+
+---
+
+## 🗺️ 5. ARTEFATOS A SEREM GERADOS
+
+Com base nesta especificação final (v2.1), os próximos artefatos obrigatórios são:
+
+### 5.1. Diagrama de Casos de Uso (UML)
+
+- **Escopo:** 16 requisitos funcionais organizados em **26 casos de uso** (18 principais + 8 internos).
+- **Atores:** Usuário Não Autenticado, Usuário Autenticado, Sistema, API Mock.
+- **Destaques v2.1:** Inclusão explícita de **UC25 (Selecionar Fornecedores)** e **UC26 (Filtrar por Disponibilidade)** como pré-requisitos para o cálculo de orçamento.
+- **Entregável:** Arquivo XML atualizado (`casos_de_uso_v0.2.xml` → `v2.1`) compatível com Draw.io.
+
+### 5.2. Diagrama de Transição de Estados (UML)
+
+- **Escopo:** 3 máquinas de estado críticas:
+  1. Autenticação: Idle → Loading → Success/Error → Redirect
+  2. Lista de Compras: Draft → Saved → Comparing → Compared → Exporting
+  3. Sessão de Comparação: Seleção Inicial → Filtragem Aplicada → Cálculo Solicitado → Resultados Exibidos
+- **Entregável:** Diagramas mostrando transições válidas, gatilhos e estados finais.
+
+### 5.3. DER - Diagrama Entidade-Relacionamento
+
+- **Escopo:** 6 tabelas principais aplicando ACID: `users`, `lists`, `list_items`, `suppliers`, `products`, `prices`.
+- **Entregável:** DER com cardinalidades, constraints (PK, FK, UNIQUE), índices e campo `deleted_at` para soft delete.
+
+### 5.4. Protótipo de Baixa Fidelidade
+
+- **Escopo:** 9 telas principais contemplando todo o fluxo refinado:
+  1. Login/Cadastro (tela única com tabs)
+  2. Recuperação de Senha (solicitar + resetar)
+  3. Dashboard (lista de listas do usuário)
+  4. Criar/Editar Lista (formulário + tabela de itens)
+  5. **Seleção de Fornecedores (NOVA: Checkboxes + Slider de disponibilidade)**
+  6. Comparação de Fornecedores (tabela flat com resultados)
+  7. Perfil do Usuário (visualizar/editar dados)
+  8. Modal de Confirmação (exclusão de lista/conta)
+  9. View de Impressão (otimizada para Ctrl+P)
+- **Entregável:** Wireframes em Figma/Excalidraw com navegação entre telas.
+
+---
+
+## 📅 6. CRONOGRAMA ESTIMADO (MVP)
+
+| Fase                             | Duração                 | Entregáveis                                                                                                    |
+| :------------------------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------- |
+| **Fase 1: Setup e Infra**        | 3 dias                  | Repositórios GitHub, Docker Compose (app + DB), CI/CD básico, Seed de dados.                                   |
+| **Fase 2: Backend Core**         | 10 dias                 | Auth, CRUD de listas, **Endpoint de listagem/filtragem de fornecedores**, Motor de comparação, OpenAPI.        |
+| **Fase 3: Frontend Core**        | 10 dias                 | Telas de auth, Dashboard, CRUD de listas, **Tela de Seleção de Fornecedores**, Tela de comparação, Exportação. |
+| **Fase 4: Testes e Refinamento** | 5 dias                  | Testes unitários (80% cobertura), Ajustes de UI/UX, Performance tuning, Bug fixes.                             |
+| **Fase 5: Deploy e Validação**   | 2 dias                  | Deploy em staging, Validação com stakeholders, Ajustes finais, Documentação de uso.                            |
+| **TOTAL**                        | **30 dias** (6 semanas) | **MVP funcional e validado**                                                                                   |
+
+---
+
+## ✅ 7. CRITÉRIOS DE SUCESSO DO MVP
+
+O MVP será considerado **bem-sucedido** se:
+
+1. ✅ **Funcionalidade Core:** Usuário consegue criar lista, **selecionar fornecedores**, comparar e ver a melhor oferta.
+2. ✅ **Usabilidade:** Fluxo completo (cadastro → comparação) em <5 minutos.
+3. ✅ **Performance:** Tempo de resposta <500ms em 95% das requisições (p95).
+4. ✅ **Qualidade:** Cobertura de testes >80%, zero bugs críticos ou bloqueantes.
+5. ✅ **Segurança:** Zero vulnerabilidades críticas (OWASP Top 10), rate limiting ativo.
+6. ✅ **Stakeholder Approval:** Feedback positivo dos stakeholders na demo final, validando a decisão de seleção manual de fornecedores.
+
+---
+
+## 🚀 8. PRÓXIMOS PASSOS
+
+### Imediato (Próxima Semana - Prioridade P0)
+
+1. ✅ **Aprovação formal** desta especificação v2.1 como SSOT.
+2. ⏳ **Atualização do artefato XML** (`casos_de_uso_v0.2.xml`) incluindo UC25 e UC26.
+3. ⏳ **Atualização do Protótipo de Baixa Fidelidade** com a nova tela de seleção e filtragem de fornecedores.
+4. ⏳ **Setup inicial dos repositórios** e implementação dos endpoints de listagem de fornecedores (RF11/RF12).
+
+### Curto Prazo (Semanas 2-6)
+
+1. Desenvolvimento iterativo em sprints de 1 semana com foco no motor de comparação (RF13/RF14).
+2. Demos semanais para stakeholders (feedback contínuo).
+3. Testes unitários a cada feature implementada.
+4. Deploy em staging na semana 5.
+
+### Pós-MVP (Backlog Futuro)
+
+- Integração com LLMs para importação de listas por texto livre/imagem.
+- Web scraping de preços em tempo real.
+- App mobile (React Native/PWA).
+- Roteirização logística (distância até fornecedores).
+
+---
+
+## 📞 9. CONTATO E GOVERNANÇA
+
+**Papéis e Responsabilidades:**
+
+- **Product Owner:** [A definir] (Slack: `#cobeco-product`)
+- **Tech Lead:** [A definir] (Slack: `#cobeco-tech`)
+- **Arquiteto de Software:** [A definir] (Slack: `#cobeco-arch`)
+- **Guardião deste Documento:** Tech Lead + PO (conjunto, via PRs no repositório oficial).
+
+**Rituais:**
+
+- Sprint Planning: 1h, toda sexta-feira
+- Sprint Review: 15min, toda sexta-feira
+- Retrospectiva: 30min, toda sexta-feira
+
+**Canais de Comunicação:**
+
+- WhatsApp: [#COBECO-MVP](https://chat.whatsapp.com/LV33cRZKwFAAoaPljTcvLx)
+- Documentação Oficial: [github.com/leonardosetti/COBECO](https://github.com/leonardosetti/COBECO)
+
+---
+
+## 📝 10. APÊNDICES
+
+### Apêndice A: Glossário de Termos
+
+- **COBECO:** Comparador de Benefícios de Compras.
+- **MVP:** Minimum Viable Product (Produto Viável Mínimo).
+- **SSOT:** Single Source of Truth (Fonte Única de Verdade).
+- **SDD:** Specification-Driven Development (Desenvolvimento Orientado a Especificação).
+- **ACID:** Atomicity, Consistency, Isolation, Durability (propriedades de transações DB).
+- **Tabela Flat:** Estrutura comparativa simples (fornecedor × métricas), sem agrupamentos complexos por cobertura.
+- **Sessão de Comparação:** Período temporário onde a seleção de fornecedores é mantida no frontend (não persistida no banco de dados), permitindo que o usuário teste diferentes combinações.
+
+### Apêndice B: Referências
+
+- Clean Architecture (Robert C. Martin)
+- The Pragmatic Programmer (David Thomas, Andrew Hunt)
+- 10 Usability Heuristics for User Interface Design (Jakob Nielsen) - _Heurística #3: User Control and Freedom_
+- OpenAPI Specification 3.0
+
+### Apêndice C: Licenças e Compliance
+
+- Todas as tecnologias utilizadas são FOSS ou possuem free tiers adequados.
+- Resend: Free tier (3000 emails/mês).
+- GitHub Actions: Free para repos públicos, 2000 min/mês para privados.
+- PostgreSQL, Node.js, React: Licenças MIT/Apache.
+
+---
+
+**FIM DO RELATÓRIO**
+
+**Próxima Ação Imediata:** Aprovação desta especificação v2.1 e início da atualização do diagrama de casos de uso (XML) e protótipo de baixa fidelidade para refletir os requisitos RF11 e RF12.
+
+---
+
+# Seção Histórico
+
 # 📊 RELATÓRIO DE ESPECIFICAÇÃO - MVP COMPARADOR DE COMPRAS
 
 **Versão:** 2.0 (MVP Simplificado)

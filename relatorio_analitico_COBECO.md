@@ -17,7 +17,7 @@ Este documento consolida **todas as decisões arquiteturais** do projeto COBECO 
 
 **Entregáveis do MVP:**
 
-- ✅ 8 tabelas no SQLite3 (incluindo pivô `supplier_categories`)
+- ✅ 8 tabelas no SQLite3 - Revisão, usar o SGBD MySql (incluindo pivô `supplier_categories`)
 - ✅ 16 Requisitos Funcionais (RF01–RF16) + 10 Requisitos Não Funcionais (RNF01–RNF10)
 - ✅ 6 ADRs formais aprovados
 - ✅ 4 Camadas de Clean Architecture
@@ -34,7 +34,7 @@ Este documento consolida **todas as decisões arquiteturais** do projeto COBECO 
 | ----------------- | ---------------------------------------------------- | ----------------------- | ----------------- | -------- |
 | **ADR-001** | Frontend Vanilla JS + ES6 Modules                    | ✅ APROVADO             | KISS + YAGNI      | Baixo    |
 | **ADR-002** | Backend FastAPI (Python 3.12)                        | ✅ APROVADO             | SDD + KISS        | Baixo    |
-| **ADR-003** | SQLite3 com WAL Mode                                 | ✅ APROVADO             | KISS + ACID       | Zero     |
+| **ADR-003** | SQLite3 com WAL Mode - Revisão usar o SGBD MySql    | ✅ APROVADO             | KISS + ACID       | Zero     |
 | **ADR-004** | JWT Stateless (access memória + refresh httpOnly)   | ✅ APROVADO COM AJUSTES | KISS + Segurança | Médio   |
 | **ADR-005** | Export CSV Client-Side (Blob)                        | ✅ APROVADO             | KISS + YAGNI      | Baixo    |
 | **ADR-006** | Recuperação de Senha — Dupla Via (log + pergunta) | ✅ APROVADO COM AJUSTES | KISS + YAGNI      | Baixo    |
@@ -66,7 +66,7 @@ Este documento consolida **todas as decisões arquiteturais** do projeto COBECO 
 | Aspecto                  | Detalhe                                                                                       |
 | ------------------------ | --------------------------------------------------------------------------------------------- |
 | **Contexto**       | Banco simples, ACID, sem servidor externo                                                     |
-| **Decisão**       | SQLite3 com`PRAGMA journal_mode=WAL` e `PRAGMA foreign_keys=ON`                           |
+| **Decisão**       | SQLite3 com`PRAGMA journal_mode=WAL` e `PRAGMA foreign_keys=ON`                           | - Revisão usar o SGBD MySql
 | **Justificativa**  | KISS máximo. Zero configuração. ACID suportado. Adequado para single-user/low-concurrency. |
 | **Consequências** | Single-writer. Sem tipos ENUM. Arquivo único (volume Docker obrigatório).                   |
 | **Configuração** | `busy_timeout=5000`, `row_factory=sqlite3.Row`, volume `./data:/app/data`               |

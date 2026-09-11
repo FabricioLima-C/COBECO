@@ -128,7 +128,7 @@ Este documento consolida **todas as decisões arquiteturais** do projeto COBECO 
 ┌─────────────────────┐         ┌─────────────────────┐
 │       lists         │         │    list_items       │
 ├─────────────────────┤         ├─────────────────────┤
-│ id (PK)             │◄───1:N──│ id (PK)             │
+│ id (PK)             │◄───1:N──┤ id (PK)             │
 │ user_id (FK)        │         │ list_id (FK)        │
 │ name                │         │ product_id (FK)     │
 │ created_at          │         │ quantity            │
@@ -150,7 +150,7 @@ Este documento consolida **todas as decisões arquiteturais** do projeto COBECO 
                                   ┌─────────────────────┐
                                   │ supplier_products   │
                                   ├─────────────────────┤
-                                  │ supplier_id (FK)    │──┐
+                                  │ supplier_id (FK)    ├──┐
                                   │ product_id (FK)     │  │
                                   │ price               │  │
                                   │ stock               │  │
@@ -169,7 +169,7 @@ Este documento consolida **todas as decisões arquiteturais** do projeto COBECO 
            ▼                                               │
 ┌─────────────────────┐                                    │
 │ supplier_categories │                                    │
-│    (TABELA PIVÔ)    │────────────────────────────────────┘
+│    (TABELA PIVÔ)    ├────────────────────────────────────┘
 ├─────────────────────┤
 │ supplier_id (FK)    │
 │ category_id (FK)    │
@@ -612,13 +612,13 @@ cobeco/
 
 ## 12. ASSINATURAS DE APROVAÇÃO
 
-| Papel                               | Nome                      | Data                 | Status        |
-| ----------------------------------- | ------------------------- | -------------------- | ------------- |
-| **Product Owner (Professor)** | _________________________ | ___/___/2026 | ⏳ Aguardando |
-| **Tech Lead**                 | _________________________ | ___/___/2026 | ⏳ Aguardando |
-| **Arquiteto de Software**     | _________________________ | ___/___/2026 | ⏳ Aguardando |
-| **Dev Frontend**              | _________________________ | ___/___/2026 | ⏳ Aguardando |
-| **Dev Backend**               | _________________________ | ___/___/2026 | ⏳ Aguardando |
+| Papel                                               | Nome                      | Data                 | Status        |
+| --------------------------------------------------- | ------------------------- | -------------------- | ------------- |
+| **Product Owner (THAIS CRISTINA CASAGRANDE)** | _________________________ | ___/___/2026 | ⏳ Aguardando |
+| **Tech Lead**                                 | _________________________ | ___/___/2026 | ⏳ Aguardando |
+| **Arquiteto de Software**                     | _________________________ | ___/___/2026 | ⏳ Aguardando |
+| **Dev Frontend**                              | _________________________ | ___/___/2026 | ⏳ Aguardando |
+| **Dev Backend**                               | _________________________ | ___/___/2026 | ⏳ Aguardando |
 
 ---
 

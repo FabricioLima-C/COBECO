@@ -13,7 +13,7 @@
 
 | # | Falha | Severidade | Descrição | Solução Proposta |
 |---|-------|-----------|-----------|------------------|
-| **F1** | Conflito de Stack Tecnológica | 🔴 Crítico | Documentos `Refinamento_de_Requisitos.md` e `Report_Espec_MVP.md` ainda referenciam PostgreSQL/NestJS/React/TypeScript, enquanto o Relatório Final v3.1 define SQLite3/FastAPI/Vanilla JS | **Consolidar em v3.1**: Stack minimalista é a oficial. Arquivar documentos anteriores como "histórico". |
+| **F1** | Conflito de Stack Tecnológica | 🔴 Crítico | Documentos `Refinamento_de_Requisitos.md` e `Report_Espec_MVP.md` ainda referenciam PostgreSQL/NestJS/React/TypeScript, enquanto o Relatório Final v3.1 define SQLite3/FastAPI/Vanilla JS - Nota de revisão: alterar SGBD para MySql | **Consolidar em v3.1**: Stack minimalista é a oficial. Arquivar documentos anteriores como "histórico". |
 | **F2** | Rate Limiting Inconsistente | 🟡 Médio | Alguns documentos definem 5 tentativas/15min, outros 6 tentativas | **Padronizar em 6 tentativas** conforme requisito explícito do projeto (anti-DDoS) |
 | **F3** | Recuperação de Senha Ambígua | 🟡 Médio | Alguns docs falam em Resend (email real), outros em pergunta de segurança | **Dupla via aprovada**: Via A (log no stdout para dev) + Via B (pergunta de segurança para produção acadêmica), toggle via env var `RECOVERY_MODE` |
 | **F4** | Modelo de Categorias Incorreto (v3.0) | 🔴 Crítico | DER v3.0 relacionava `products` diretamente com `categories` via FK `category_id`, contradizendo a semântica real (categorias são de FORNECEDORES) | **DER v3.1**: Tabela pivô `supplier_categories` (N:N). Produtos são agnósticos à categoria. |

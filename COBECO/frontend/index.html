@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>COBECO — Comparador de Compras</title>
+<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/application.css">
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="brand"><div class="brandmark">C</div>COBECO</div>
+    <nav class="nav">
+      <button data-action="go('landing')" id="n-landing" class="active">Início</button>
+      <button data-action="go('builder')" id="n-builder">Nova lista</button>
+      <button data-action="go('lists')" id="n-lists">Minhas listas</button>
+      <button data-action="go('providers')" id="n-providers">Fornecedores</button>
+      <button data-action="go('profile')" id="n-profile">Perfil</button>
+      <button data-action="handleAuthNav()" id="authBtn" class="auth-chip">Entrar</button>
+    </nav>
+  </header>
+
+
+  <!-- LANDING / FIGMA HOME -->
+  <main id="landing" class="screen active landing">
+    <div class="landing-shell">
+      <div class="landing-grid">
+        <section class="landing-copy">
+          <div class="eyebrow"><span class="eyebrow-dot"></span> compras mais inteligentes</div>
+          <h1>Compare preços. <span>Economize de verdade.</span></h1>
+          <p>Crie sua lista de compras em poucos minutos, compare fornecedores por preço e disponibilidade e escolha a melhor opção para o seu bolso.</p>
+          <div class="landing-actions">
+            <button class="landing-primary" data-action="go('builder')">Criar minha lista</button>
+            <button class="secondary" data-action="go('login')">Entrar na minha conta</button>
+          </div>
+          <div class="landing-features">
+            <div class="feature-mini"><strong>Lista rápida</strong><span>Adicione produtos do catálogo e ajuste quantidades em segundos.</span></div>
+            <div class="feature-mini"><strong>Comparação clara</strong><span>Veja preço total, disponibilidade e itens ausentes por fornecedor.</span></div>
+            <div class="feature-mini"><strong>Sem cadastro obrigatório</strong><span>Crie e exporte sua lista antes mesmo de entrar na conta.</span></div>
+          </div>
+        </section>
+        <section class="landing-demo" aria-label="Prévia de comparação">
+          <div class="demo-window">
+            <div class="demo-head">
+              <div><strong>Comparação da sua lista</strong><div class="fig-e3fa01d784 muted">4 produtos · 3 fornecedores</div></div>
+              <div class="demo-dots"><i></i><i></i><i></i></div>
+            </div>
+            <div class="demo-list">
+              <div class="demo-row"><div><strong>Mercado Econômico</strong><br><span>100% disponível</span></div><b>R$ 184,90</b></div>
+              <div class="demo-row"><div><strong>SuperMais</strong><br><span>92% disponível</span></div><b>R$ 176,50</b></div>
+              <div class="demo-row"><div><strong>Compra Fácil</strong><br><span>84% disponível</span></div><b>R$ 169,30</b></div>
+            </div>
+            <div class="demo-total"><span><small>Menor preço</small><br><strong>R$ 169,30</strong></span><span class="badge green">Economize 8%</span></div>
+          </div>
+          <div class="float-card"><span class="fig-a49cca52be muted">economia estimada</span><br><b>R$ 15,60</b></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- BUILDER / RF07 -->
+  <main id="builder" class="screen">
+    <div class="container">
+      <section class="hero">
+        <div>
+          <span class="badge blue">Comparador inteligente</span>
+          <h1>Crie sua lista e compare preços.</h1>
+          <p>Monte sua lista de compras, selecione fornecedores e encontre rapidamente a opção com melhor custo e disponibilidade.</p>
+        </div>
+        <div class="hero-card">
+          <div><small>Economia estimada com comparação</small><div class="stat">até 18%</div></div>
+          <small>Exemplo ilustrativo · catálogo de demonstração</small>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h">
+          <div><strong>Lista de compras</strong><div class="fig-698ed75b81 muted">Adicione produtos do catálogo.</div></div>
+          <span class="badge blue" id="memoryBadge">Em memória</span>
+        </div>
+        <div class="panel-b">
+          <div class="fig-bf4a218e05 field">
+            <label for="listName">Nome da lista</label>
+            <input id="listName" class="input" value="" maxlength="100" placeholder="Ex.: Compras do mês">
+          </div>
+          <div class="grid2">
+            <div class="field autocomplete">
+              <label for="search">Produto</label>
+              <input id="search" class="input" placeholder="Digite para buscar..." autocomplete="off">
+              <div id="menu" class="menu"></div>
+            </div>
+            <div class="field">
+              <label for="qty">Quantidade</label>
+              <input id="qty" class="input" type="number" min="1" max="9999" value="1">
+            </div>
+            <button class="primary" data-action="addItem()">Adicionar item</button>
+          </div>
+        </div>
+        <div id="itemsWrap"></div>
+        <div class="footerbar">
+          <div class="count" id="count">0 produtos · 0 unidades</div>
+          <div class="fig-c9dc9b5648">
+            <button class="secondary" data-action="exportCSV()">Exportar CSV</button>
+            <button class="secondary" data-action="saveList()">Salvar lista</button>
+            <button class="success" id="compareBtn" data-action="go('providers')" disabled>Comparar preços</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- REGISTER / RF01 -->
+  <main id="register" class="screen">
+    <div class="auth-layout">
+      <div class="auth-left">
+        <span class="fig-73992c7232 badge green">COBECO</span>
+        <h1 class="fig-9cfa74cbf7">Economize com inteligência.</h1>
+        <p class="fig-fdb8bccf42">Crie sua conta para salvar listas, comparar fornecedores e manter suas compras organizadas.</p>
+      </div>
+      <div class="auth-right">
+        <div class="authcard">
+          <h2>Criar conta</h2>
+          <p class="muted">Preencha seus dados para começar.</p>
+          <div id="regMsg" class="msg"></div>
+          <div class="stack">
+            <div class="field"><label for="regUser">Username</label><input id="regUser" class="input" maxlength="30" placeholder="3 a 30 caracteres alfanuméricos"></div>
+            <div class="field"><label for="regName">Nome</label><input id="regName" class="input" placeholder="Seu nome"></div>
+            <div class="field"><label for="regEmail">Email</label><input id="regEmail" class="input" type="email" placeholder="voce@exemplo.com"></div>
+            <div class="field"><label for="regPass">Senha</label><input id="regPass" class="input" type="password" data-input-action="updatePasswordRules()"></div>
+            <div class="password-rules" id="pwdRules">
+              <div class="rule no" data-rule="len">• mínimo 8 caracteres</div>
+              <div class="rule no" data-rule="upper">• 1 letra maiúscula</div>
+              <div class="rule no" data-rule="num">• 1 número</div>
+              <div class="rule no" data-rule="spec">• 1 caractere especial</div>
+            </div>
+            <div class="field"><label for="regPass2">Confirmar senha</label><input id="regPass2" class="input" type="password"></div>
+            <div class="field"><label for="regQuestion">Pergunta de segurança</label>
+              <select id="regQuestion" class="select">
+                <option value="">Selecione</option>
+                <option>Qual era o nome do seu primeiro animal de estimação?</option>
+                <option>Qual é o nome da sua cidade natal?</option>
+                <option>Qual era o nome da sua escola de infância?</option>
+              </select>
+            </div>
+            <div class="field"><label for="regAnswer">Resposta</label><input id="regAnswer" class="input"></div>
+            <button class="primary" data-action="registerUser()">Criar conta</button>
+            <button class="secondary" data-action="go('login')">Já tenho conta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- LOGIN / RF02 + FIGMA TELAS 1–5 -->
+  <main id="login" class="screen">
+    <div class="fig-auth-stage">
+      <div class="fig-stage-label">Sua conta COBECO</div>
+      <div class="fig-auth-card">
+        <div class="fig-auth-logo"><div class="brandmark">C</div> COBECO</div>
+        <h2 class="fig-914ae32156">Entre na sua conta</h2>
+        <p class="fig-ab79ea2b85 muted">Acesse e organize suas listas salvas.</p>
+
+        <div class="auth-state-strip" aria-hidden="true">
+          <i id="stateDot1" class="on"></i><i id="stateDot2"></i><i id="stateDot3"></i><i id="stateDot4"></i><i id="stateDot5"></i>
+        </div>
+
+        <div id="loginPageMsg"></div>
+
+        <div class="stack">
+          <div class="field"><label for="loginUser">Username</label><input id="loginUser" class="input" autocomplete="username" placeholder="Digite seu username"></div>
+          <div class="field"><label for="loginPass">Senha</label><input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+          <button class="primary" id="loginPageBtn" data-action="doLogin(false)">Entrar</button>
+          <button class="ghost" id="recoverLinkBtn" data-action="go('recover')">Esqueci minha senha</button>
+        </div>
+
+        <div class="login-foot">Ainda não possui uma conta? <button data-action="go('register')">Criar conta</button></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RECOVERY / RF04 -->
+  <main id="recover" class="screen">
+    <div class="container">
+      <div class="fig-4a5cbbd240 authcard">
+        <h2>Recuperar senha</h2>
+        <p class="muted">Recuperação por pergunta de segurança.</p>
+        <div class="stepper"><div class="step active" id="s1"></div><div class="step" id="s2"></div><div class="step" id="s3"></div></div>
+        <div id="recoverMsg" class="msg"></div>
+        <div id="recoverStep1" class="stack">
+          <div class="field"><label for="recUser">Username</label><input id="recUser" class="input"></div>
+          <button class="primary" data-action="recoverFind()">Continuar</button>
+        </div>
+        <div id="recoverStep2" class="stack hidden">
+          <div class="field"><label for="recQuestion">Pergunta</label><input id="recQuestion" class="input" readonly></div>
+          <div class="field"><label for="recAnswer">Resposta</label><input id="recAnswer" class="input"></div>
+          <div class="fig-a49cca52be muted">Máximo de 3 tentativas.</div>
+          <button class="primary" data-action="recoverValidate()">Validar resposta</button>
+        </div>
+        <div id="recoverStep3" class="stack hidden">
+          <div class="field"><label for="recPass">Nova senha</label><input id="recPass" class="input" type="password"></div>
+          <div class="field"><label for="recPass2">Confirmar nova senha</label><input id="recPass2" class="input" type="password"></div>
+          <button class="primary" data-action="recoverReset()">Alterar senha</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- LISTS / RF09 RF10 RF11 -->
+  <main id="lists" class="screen">
+    <div class="container">
+      <div class="fig-25dddf72cd">
+        <div><h1 class="fig-ab79ea2b85">Minhas listas</h1><p class="muted">Listas salvas, ordenadas da mais recente para a mais antiga.</p></div>
+        <button class="primary" data-action="startNewList()">+ Nova lista</button>
+      </div>
+      <section class="panel">
+        <div class="panel-b no-print"><div class="field"><label for="savedQuery">Buscar por nome</label><input id="savedQuery" class="input" placeholder="Nome da lista"></div></div><div id="listsWrap"></div>
+        <div class="pagination" id="pagination"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- PROVIDERS / RF12 RF13 -->
+  <main id="providers" class="screen">
+    <div class="container">
+      <div class="fig-618d9ebd9b">
+        <div><h1 class="fig-3e47b193f8">Escolha os fornecedores</h1><div class="muted">Selecione pelo menos dois para comparar.</div></div>
+        <button class="success" id="providerCompareBtn" data-action="compare()">Comparar preços</button>
+      </div>
+      <section class="panel">
+        <div class="panel-b">
+          <div class="field category-filter"><label for="category">Categoria do fornecedor</label><select id="category" class="select"><option value="">Todas as categorias</option></select></div><div class="range-row">
+            <strong>Disponibilidade mínima</strong>
+            <input id="range" type="range" min="0" max="100" value="0" data-input-action="filterProviders()">
+            <span id="rangeVal" class="badge blue">0%</span>
+          </div>
+          <div class="provider-tools"><span id="selectedCount" class="count"></span><button class="secondary" data-action="selectAll()">Selecionar todos</button><button class="ghost" data-action="clearSelection()">Limpar</button></div><div id="providerGrid" class="providers"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- RESULTS / RF14 RF15 RF17 -->
+  <main id="results" class="screen">
+    <div class="container">
+      <div class="fig-a429c006ef">
+        <div><h1 class="fig-3e47b193f8">Comparação de preços</h1><div class="muted" id="resultSummary">Resultados ordenados pelo menor preço.</div></div>
+        <div class="row-actions no-print">
+          <button class="secondary" data-action="go('providers')">Editar fornecedores</button>
+          <button class="secondary" data-action="exportCSV()">Exportar CSV</button>
+          <button class="secondary" data-action="window.print()">Imprimir</button>
+        </div>
+      </div>
+      <section class="panel">
+        <div id="compareLoading" class="loading hidden"><span class="spinner"></span><div class="fig-df928149c5">Calculando orçamento...</div></div>
+        <div id="resultsWrap">
+          <table class="table">
+            <thead><tr><th>Fornecedor</th><th>Disponibilidade</th><th>Itens disponíveis</th><th>Ausentes</th><th>Preço total</th></tr></thead>
+            <tbody id="resultBody"></tbody>
+          </table>
+          <div class="fig-c0dcf1c8de panel-b"><span class="badge warn">Atenção</span> <span class="fig-5e461f0709 muted">O menor preço pode não incluir todos os itens da sua lista.</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- PROFILE / RF05 RF06 -->
+  <main id="profile" class="screen">
+    <div class="container">
+      <h1>Meu perfil</h1>
+      <section class="panel">
+        <div class="panel-b profile-card">
+          <div class="avatar" id="profileAvatar">U</div>
+          <div>
+            <div id="profileMsg" class="msg"></div>
+            <div class="grid-two">
+              <div class="field"><label for="profUser">Username</label><input id="profUser" class="input" readonly></div>
+              <div class="field"><label for="profName">Nome</label><input id="profName" class="input"></div>
+              <div class="field"><label for="profEmail">Email</label><input id="profEmail" class="input"></div>
+              <div class="field"><label for="profOldPass">Senha atual</label><input id="profOldPass" type="password" class="input" placeholder="Obrigatória para salvar alterações"></div>
+              <div class="field"><label for="profNewPass">Nova senha (opcional)</label><input id="profNewPass" type="password" class="input"></div>
+              <div class="field"><label for="profNewPass2">Confirmar nova senha</label><input id="profNewPass2" type="password" class="input"></div>
+            </div>
+            <div class="fig-2bdf8e45fd"><button class="primary" data-action="saveProfile()">Salvar alterações</button></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- SAVE LOGIN MODAL -->
+<div id="modalback" role="dialog" aria-modal="true" aria-label="Entre para salvar sua lista" class="modalback" data-action="if(event.target===this)closeLoginModal()">
+  <div class="modal"><button class="modal-close" data-action="closeLoginModal()" aria-label="Fechar">×</button>
+    <h2>Entre para salvar sua lista</h2>
+    <p>Sua lista continuará aqui enquanto você faz login.</p>
+    <div id="loginMsg" class="msg"></div>
+    <div class="stack">
+      <div class="field"><label for="modalUser">Username</label><input id="modalUser" class="input"></div>
+      <div class="field"><label for="modalPass">Senha</label><input id="modalPass" class="input" type="password"></div>
+      <button class="primary" id="modalLoginBtn" data-action="doLogin(true)">Entrar e salvar</button>
+      <button class="secondary" data-action="goRegisterFromModal()">Criar conta</button>
+      <button class="ghost" data-action="goRecoverFromModal()">Esqueci minha senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirmBack" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" class="modalback">
+  <div class="modal">
+    <h2 id="confirmTitle">Confirmar</h2>
+    <p id="confirmText"></p>
+    <div id="confirmTyping" class="field hidden"><label for="confirmInput">Digite o nome para confirmar</label><input id="confirmInput" class="input"></div><div class="row-actions">
+      <button class="secondary" data-action="closeConfirm()">Cancelar</button>
+      <button class="danger" id="confirmActionBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap" role="status" aria-live="polite"></div>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

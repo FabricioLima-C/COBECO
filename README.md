@@ -1,251 +1,82 @@
-# 🛒 COBECO - Cotação de Bens de Consumo (MVP)
+﻿# COBECO — comparação de listas de compras
 
-**Sistema de Comparação de Preços para Listas de Compras**  
-_Projeto acadêmico da disciplina de Laboratório de Engenharia de Software_  
-_FATEC Taquaritinga - Análise e Desenvolvimento de Sistemas_
+Aplicação acadêmica com **Python 3.12/FastAPI, MySQL/InnoDB e HTML/CSS/JavaScript em módulos**. MySQL substitui a decisão anterior de SQLite por orientação do usuário. A aplicação atual está em `COBECO/backend` e `COBECO/frontend`.
 
----
+Visitantes podem criar listas, escolher fornecedores, comparar disponibilidade/preços, exportar CSV e imprimir. A autenticação é exigida para salvar, consultar ou editar listas pessoais e gerenciar o perfil.
 
-## 📖 Sobre o Projeto
+## Executar com Docker
 
-### O Problema
-
-Comparar preços manualmente entre múltiplos fornecedores é uma tarefa demorada, repetitiva e propensa a erros. Para piorar, nem sempre um único fornecedor possui todos os produtos desejados, forçando o consumidor a fracionar suas compras e perder tempo recalculando totais.
-
-### A Solução
-
-O **COBECO** é um MVP (Produto Mínimo Viável) que automatiza esse processo. Trata-se de uma aplicação web desktop-first que permite ao usuário:
-
-1. **Criar listas de compras** personalizadas com itens, quantidades e categorias
-2. **Submeter essas listas** a um motor de comparação que cruza os dados com um catálogo interno de fornecedores (populado via seed)
-3. **Visualizar orçamentos consolidados** em uma tabela comparativa clara e objetiva
-4. **Identificar lacunas** — o sistema destaca quais produtos estão faltando em cada fornecedor
-5. **Tomar a melhor decisão** com base no menor custo consolidado
-
-### Por que esse MVP é único?
-
-Diferente de ferramentas complexas que dependem de web scraping ou APIs externas em tempo real, o COBECO adota uma abordagem **pragmática e realista**:
-
-- ✅ **Dados mockados via seed** — foco 100% na lógica de negócio
-- ✅ **Motor de comparação simplificado** — tabela flat ao invés de agrupamentos complexos
-- ✅ **Stack moderna e FOSS** — React, Express, PostgreSQL, Docker
-- ✅ **Clean Architecture** — separação clara de responsabilidades
-- ✅ **SDD (Specification-Driven Development)** — API-first com OpenAPI
-
----
-
-## 🎯 Objetivos do Projeto
-
-### Objetivo Geral
-
-Desenvolver um MVP funcional e minimalista que automatize a comparação de preços entre fornecedores a partir de listas de compras criadas pelo usuário, fornecendo orçamentos claros e evidenciando produtos ausentes em cada cenário.
-
-### Objetivos Específicos (Entregáveis do MVP)
-
-- ✅ Implementar autenticação segura (cadastro, login, recuperação de senha)
-- ✅ Permitir CRUD completo de listas de compras (criar, editar, excluir, listar)
-- ✅ Manter um cadastro interno de fornecedores, categorias e produtos (via seed)
-- ✅ Desenvolver o motor de comparação que gera tabela flat com disponibilidade e preços
-- ✅ Exibir comparativos destacando o melhor orçamento e os produtos faltantes
-- ✅ Garantir a persistência dos dados em banco relacional (PostgreSQL)
-- ✅ Estabelecer comunicação robusta entre Frontend e Backend via API RESTful (OpenAPI)
-
----
-
-## ⚙️ Premissas e Restrições Fundamentais
-
-| Pilar                        | Aplicação no Projeto                                                                                   |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 🧼 **KISS (Keep It Simple)** | Escopo enxuto: dados mockados (sem APIs externas), UI exclusiva para desktop, lógica de negócio direta |
-| 🏛️ **Clean Architecture**    | Separação rígida entre Domínio, Casos de Uso, Adaptadores e Frameworks                                 |
-| ⚡ **ACID**                  | Operações no banco de dados garantem Atomicidade, Consistência, Isolamento e Durabilidade              |
-| 📐 **SDD (Spec-Driven)**     | API RESTful definida via OpenAPI antes da implementação (API-First)                                    |
-| 🧪 **Qualidade**             | Testes unitários críticos com cobertura >80%, CI/CD básico no GitHub Actions                           |
-| 📦 **Containerização**       | Frontend, Backend e Banco de Dados rodam em containers Docker isolados                                 |
-| 📊 **Metodologia Ágil**      | Desenvolvimento guiado por quadro Kanban para visualizar o fluxo de tarefas                            |
-
----
-
-## 🧩 Principais Funcionalidades (Escopo MVP)
-
-### Módulo de Autenticação
-
-- Cadastro de novos usuários (username, nome, email, senha)
-- Login/Logout seguro com JWT + refresh tokens
-- Recuperação de senha via email (token de 15min)
-
-### Módulo de Listas de Compras
-
-- CRUD completo: Criação, edição, exclusão e listagem
-- Adição de itens com campos: Produto (autocomplete), Quantidade
-- Busca por nome de lista com paginação
-
-### Módulo de Fornecedores e Catálogo (Seed)
-
-- Dados populados automaticamente na inicialização do sistema
-- 8 fornecedores + 10 produtos com preços variáveis (cenário A–H da especificação)
-- Fornecedores associados a categorias (Supermercado, Informática, etc.)
-
-### Módulo de Comparação de Preços
-
-- Submissão de uma lista para cotação
-- Geração de tabela flat com: Fornecedor, Itens Disponíveis, Itens Ausentes, Preço Total
-- Destaque visual para o menor orçamento consolidado
-- Listagem explícita dos produtos ausentes em cada fornecedor
-
-### Módulo de Exportação
-
-- Exportação para CSV (UTF-8 com BOM, delimitador `;`)
-- Impressão otimizada via navegador (CSS `@media print`)
-
----
-
-## 🛠️ Stack Tecnológica (FOSS - Gratuita e Open Source)
-
-| Camada             | Tecnologias                                             | Motivo da Escolha                                                |
-| ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Frontend**       | React 18 + TypeScript + Vite + Tailwind CSS             | Padrão de mercado, build ultra-rápido, componentes acessíveis    |
-| **Backend**        | Node.js 20 + Express 4 + TypeScript                     | Separação em camadas, validação Zod, tipagem forte               |
-| **Banco de Dados** | PostgreSQL 16 + Prisma ORM 5                            | ACID, JSON support, type-safe queries, migrations                |
-| **API**            | RESTful + OpenAPI (Swagger)                             | Contratos claros entre Front e Back (SDD)                        |
-| **Infraestrutura** | Docker 24 + Docker Compose 2                            | Isolamento dos serviços, reprodutibilidade de ambiente           |
-| **CI/CD**          | GitHub Actions                                          | Pipeline automatizado para testes e validação de código          |
-| **Testes**         | Vitest (backend e frontend) + Playwright (E2E)          | Cobertura de casos de uso críticos                               |
-| **Email**          | _planejado_ — ainda não implementado                    | Envio de e-mails para recuperação de senha                       |
-
----
-
-## 🏗️ Arquitetura Geral (Docker Compose)
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      DOCKER NETWORK                         │
-├─────────────────┬─────────────────┬─────────────────────────┤
-│   FRONTEND      │    BACKEND      │   POSTGRESQL            │
-│  (React + Vite) │ (Express + TS)  │   (Database)            │
-│   Porta: 5173   │   Porta: 3333   │   Porta: 5432           │
-├─────────────────┴─────────────────┴─────────────────────────┤
-│               Comunicação via API REST (OpenAPI)            │
-└─────────────────────────────────────────────────────────────┘
-```
-
-- **Frontend** consome a API do Backend via TanStack Query
-- **Backend** aplica as regras de negócio e acessa o Banco via Prisma ORM
-- **Banco de Dados** armazena usuários, listas, fornecedores, produtos e preços
-- **Seed** é executado automaticamente na subida do container do Banco
-
----
-
-## 🚀 Como Executar o Projeto (Passos Rápidos)
-
-```bash
-# 1. Clone o repositório
-git clone https://github.com/leonardosetti/COBECO.git
-
-# 2. Acesse o diretório
+```powershell
 cd COBECO
-
-# 3. Copie o arquivo de variáveis de ambiente
-cp apps/api/.env.example apps/api/.env
-
-# 4. Suba os containers via Docker Compose
-docker compose up -d --build
-
-# 5. Acesse a aplicação no navegador
-# Frontend: http://localhost:5173
-# Backend API: http://localhost:3333
-# Swagger Docs: http://localhost:3333/docs
-
-# 6. (Opcional) Execute os testes
-docker-compose exec backend npm run test
-docker-compose exec frontend npm run test
+Copy-Item .env.example .env
+# Edite .env: defina MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD e JWT_SECRET próprios.
+docker compose up --build
 ```
 
-**Nota:** O banco de dados já será populado com fornecedores, categorias e produtos de exemplo assim que subir (via seed automático).
+Interface: http://localhost:8000 · API/Swagger: http://localhost:8000/docs · Contrato: http://localhost:8000/openapi.json
 
----
+O Compose sobe MySQL 8.4 e a API, que aplica migrations e seed antes de servir o frontend. O banco usa volume `mysql_data`. Não use `down -v` se deseja preservar seus dados. `APP_ORIGIN` deve corresponder à URL usada no navegador; o padrão é `http://localhost:8000`. Para publicar em HTTPS, configure `APP_ENV=production` e o endereço HTTPS em `APP_ORIGIN`.
 
-## 📋 Escopo: O que NÃO está incluso (Out of Scope)
+O seed contém 5 categorias macro, 10 fornecedores fictícios, 50 produtos, 20 vínculos de categoria e 294 ofertas. Para criar a conta `demo`, defina `SEED_DEMO_PASSWORD` com senha forte; a resposta de segurança dessa conta é `cobeco`. Não há senha de demonstração padrão.
 
-Para manter o KISS e entregar dentro do prazo (30 dias), os seguintes itens estão deliberadamente fora do escopo desta versão:
+## Executar sem Docker
 
-- ❌ Integração com APIs reais de e-commerce ou web scraping
-- ❌ Desenvolvimento de aplicativos mobile nativos (Android/iOS)
-- ❌ Processamento de pagamentos ou intermediação financeira
-- ❌ Cálculo de fretes ou roteirização logística
-- ❌ Geração de PDF nativo (apenas CSV + impressão via navegador)
-- ❌ Suporte a múltiplos idiomas ou moedas (apenas BRL)
-- ❌ Autenticação via OAuth (Google/Facebook)
-- ❌ BDD/E2E tests completos (apenas unitários críticos)
+É necessário um servidor MySQL 8.0.16+ (recomendado 8.4) disponível. Crie um banco vazio e um usuário com permissões apenas sobre ele, usando `utf8mb4`. Não aponte a instalação para a base PostgreSQL antiga.
 
----
+```powershell
+cd COBECO
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+# Configure conexão MySQL, JWT_SECRET e APP_ORIGIN no .env.
+.\.venv\Scripts\python -m backend.seed
+.\.venv\Scripts\python -m uvicorn backend.main:create_app --factory --host 127.0.0.1 --port 8000
+```
 
-## 🧠 Princípios de Desenvolvimento Adotados
+As variáveis de ambiente prevalecem sobre `.env`. Migrations estão em `backend/migrations`; são aplicadas por ordem e registradas em `schema_migrations`. Há oito tabelas de negócio e uma tabela técnica de migrations. DDL MySQL não é transacional; o runner usa lock e só registra a versão após concluir os comandos idempotentes.
 
-| Princípio               | Aplicação no Projeto                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| **UI/UX Desktop-First** | Interface otimizada para telas ≥1024px, feedback visual claro (spinners, skeletons, toasts) |
-| **Clean Code**          | Código legível, nomenclatura significativa, funções com responsabilidade única              |
-| **Clean Architecture**  | Separação entre Domínio, Casos de Uso, Adaptadores e Frameworks                             |
-| **ACID**                | Garantia de atomicidade, consistência, isolamento e durabilidade nas operações de banco     |
-| **SDD (Spec-Driven)**   | Contratos OpenAPI definidos antes do desenvolvimento                                        |
-| **CI/CD**               | Pipeline automatizado no GitHub Actions para validar builds e execução de testes            |
-| **Kanban**              | Gestão do projeto com quadro Kanban (GitHub Projects) para visualização do fluxo            |
+## Comportamento da aplicação
 
----
+- Rascunho preservado no `sessionStorage` da aba, inclusive durante login. Seleção e access token ficam em memória. Ao entrar, o usuário escolhe salvar ou manter o rascunho.
+- Produtos independem de categorias; categorias filtram fornecedores, que podem pertencer a várias. Sem filtro, todos os fornecedores ativos aparecem.
+- Estoque deve atender a quantidade inteira. A tabela ordena por total disponível e identifica valores parciais; a melhor oferta considera maior cobertura, depois menor total. Empates são destacados; fornecedor sem itens recebe N/D.
+- Listas salvas têm produtos distintos, quantidades de 1–9999, nome de até 100 caracteres, busca e paginação de 20. Exclusão lógica exige digitar o nome.
+- CSV é produzido no navegador com BOM, `;` e nome `lista_YYYYMMDD.csv`. Impressão usa A4.
+- Cadastro por username alfanumérico, confirmação de senha e pergunta de segurança. Perfil exige senha atual em qualquer alteração.
+- Access JWT: 15 minutos; refresh: 7 dias em cookie httpOnly/SameSite Strict. Uma sessão renovável por conta; login novo substitui a sessão anterior. Logout, reset e mudança de senha invalidam a sessão no servidor.
+- Login: seis falhas por identificador/IP bloqueiam por 15 minutos. Recuperação: três falhas por 15 minutos. O limitador é em memória; execute **um worker**. Reiniciar a API limpa esses contadores.
+- Recuperação acadêmica: `RECOVERY_MODE=question` (padrão) ou `log` em desenvolvimento. No modo log, o link tem token de uso único, válido por 15 minutos. Não há serviço de e-mail.
 
-## 📅 Cronograma e Status Atual
+## Validação
 
-| Fase                             | Duração     | Status                                     |
-| -------------------------------- | ----------- | ------------------------------------------ |
-| **Fase 1: Setup e Infra**        | 3 dias      | 🟢 Em andamento                            |
-| **Fase 2: Backend Core**         | 10 dias     | ⏳ Aguardando                              |
-| **Fase 3: Frontend Core**        | 10 dias     | ⏳ Aguardando                              |
-| **Fase 4: Testes e Refinamento** | 5 dias      | ⏳ Aguardando                              |
-| **Fase 5: Deploy e Validação**   | 2 dias      | ⏳ Aguardando                              |
-| **TOTAL**                        | **30 dias** | 🚩 **Data Limite: 13 de Novembro de 2026** |
+```powershell
+cd COBECO
+.\.venv\Scripts\python -m ruff check backend
+.\.venv\Scripts\python -m ruff format --check backend
+node --test frontend/tests/*.test.mjs
+.\.venv\Scripts\python -m backend.export_openapi --check
+```
 
-**Metodologia de Gestão:** Kanban (GitHub Projects)  
-**Rituais:** Daily Standup (19:00), Sprint Planning/Review/Retrospectiva (sextas-feiras)
+Para testes de integração, configure **um banco isolado com nome terminado em `_test`**, em vez da base de uso normal:
 
----
+```powershell
+$env:MYSQL_TEST='1'
+$env:MYSQL_DATABASE='cobeco_test'
+# Configure as demais MYSQL_* para a instância de teste.
+.\.venv\Scripts\python -m pytest --cov --cov-report=term-missing --cov-report=xml
+```
 
-## 📞 Contato e Governança
+Os testes não usam SQLite: domínio/validação são puros e integração executa MySQL real. O CI inclui MySQL 8.4, ruff, pytest, cobertura mínima de 80% em domínio/casos de uso, testes JavaScript, comparação do OpenAPI versionado e build Docker.
 
-**Canais de Comunicação:**
+## Documentos e legado
 
-- **WhatsApp:** [#COBECO-MVP](https://chat.whatsapp.com/LV33cRZKwFAAoaPljTcvLx)
-- **Documentação:** [GitHub](https://github.com/leonardosetti/COBECO)
-- **Email:** TBD
+O layout segue o [modelo HTML recebido do Figma](COBECO_figma_RF01_RF17_v2.html), atualizado pelo pull até `611d558`. A extração reproduzível está em `scripts/sync_figma_layout.py`; estilos e markup são preservados, enquanto os módulos da aplicação substituem os dados e autenticação simulados do protótipo.
 
-**Equipe:**
+- [Tarefas e validações](TAREFAS.md)
+- [Decisões implementadas](relatorio_analitico_COBECO.md)
+- [Requisitos e casos de uso](analise_REQ_CasosDeUso.md)
+- [DER MySQL](diagrama_DER.md)
+- [Contrato da API](COBECO/openapi/CONTRATO.md)
+- [Transição e dados antigos](COBECO/LEGADO.md)
 
-- **Product Owner:** [Nome do Stakeholder]
-- **Tech Lead:** [Nome do Desenvolvedor Sênior]
-- **Arquiteto de Software:** [Nome do Arquiteto]
-
----
-
-## 📝 Licenças e Compliance
-
-Todas as tecnologias utilizadas são **FOSS** (Free and Open Source Software) ou possuem free tiers adequados:
-
-- **Resend:** Free tier (3000 emails/mês)
-- **GitHub Actions:** Free para repos públicos, 2000 min/mês para privados
-- **PostgreSQL, Node.js, React:** Licenças MIT/Apache
-
----
-
-## 🚀 Próximos Passos
-
-1. ✅ Aprovação deste README e especificação do MVP
-2. ⏳ Geração dos artefatos UML (Casos de Uso, Transição de Estados, DER)
-3. ⏳ Protótipo de baixa fidelidade no Figma/Excalidraw
-4. ⏳ Setup inicial dos repositórios (frontend + backend + infra)
-5. ⏳ Desenvolvimento iterativo em sprints de 1 semana
-
----
-
-**Este README é um documento vivo e será atualizado conforme o progresso do desenvolvimento.**
-
-**Última atualização:** 31 de Agosto de 2026
+`COBECO/apps`, `COBECO/packages` e seus arquivos npm/Prisma são a implementação anterior preservada. Não integram o Dockerfile ou o CI atuais. Documentos de `brain`, `prj_docs` e a monografia podem descrever decisões anteriores; a referência de execução é este README e os documentos acima. Histórico, compartilhamento, integrações externas e paridade não fazem parte do fluxo atual.

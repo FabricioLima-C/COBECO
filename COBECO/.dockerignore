@@ -4,3 +4,13 @@ node_modules
 .git
 *.log
 .env
+.venv
+.local-mysql
+.local-test
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.xml
+apps
+packages

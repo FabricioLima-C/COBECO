@@ -1,0 +1,1 @@
+"""COBECO FastAPI / MySQL application."""

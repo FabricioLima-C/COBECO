@@ -20,6 +20,14 @@ playwright-report/
 !.env.example
 !**/.env.example
 *.log
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.local-mysql/
+.local-test/
+coverage.xml
 
 # Sistema operacional e editores
 .DS_Store

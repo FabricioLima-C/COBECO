@@ -1,8 +1,20 @@
 ﻿# COBECO — comparação de listas de compras
 
-Aplicação acadêmica com **Python 3.12/FastAPI, MySQL/InnoDB e HTML/CSS/JavaScript em módulos**. MySQL substitui a decisão anterior de SQLite por orientação do usuário. A aplicação atual está em `COBECO/backend` e `COBECO/frontend`.
+O **COBECO (Cotação de Bens de Consumo)** é uma aplicação web acadêmica para montar listas de compras e comparar seu custo e cobertura entre fornecedores. Destina-se a consumidores, pequenos empresários, estudantes e profissionais que planejam compras de múltiplos itens, com interface voltada ao uso em desktop.
+
+A implementação utiliza **Python 3.12/FastAPI, MySQL/InnoDB e HTML/CSS/JavaScript em módulos** e está em `COBECO/backend` e `COBECO/frontend`. Preços e estoques vêm de catálogo próprio com carga determinística, permitindo uma demonstração reproduzível e independente de serviços externos. O objetivo, o escopo e a modelagem estão descritos na [monografia atualizada](Monografia%20e%20Demais%20Docs/COBECO_Monografia.docx).
 
 Visitantes podem criar listas, escolher fornecedores, comparar disponibilidade/preços, exportar CSV e imprimir. A autenticação é exigida para salvar, consultar ou editar listas pessoais e gerenciar o perfil.
+
+## Escopo do MVP
+
+O fluxo principal consiste em montar a lista com produtos do catálogo, selecionar de **2 a 10 fornecedores ativos**, comparar os resultados e identificar a melhor oferta. A comparação apresenta custo total, percentual de cobertura e itens ausentes por fornecedor; a melhor oferta prioriza a **maior cobertura** e, em seguida, o **menor custo total**.
+
+A monografia organiza o projeto em **17 requisitos funcionais (RF01–RF17)**, **10 não funcionais (RNF01–RNF10)** e **26 casos de uso (UC01–UC26)**, abrangendo conta e autenticação, perfil, gestão de listas, fornecedores, comparação, exportação e impressão.
+
+Compras, pagamentos, garantia de preço em tempo real, integração com fornecedores reais, aplicativo móvel nativo, autenticação por contas de terceiros, envio de e-mail e persistência do histórico de comparações estão fora do MVP.
+
+Os oito requisitos desejáveis (RD01–RD08) contemplam histórico de comparações, importação de listas por CSV, alertas de preço, compartilhamento e colaboração, aplicação progressiva ou móvel, integração com fornecedores reais, sugestões por inteligência artificial e suporte a idiomas e moedas adicionais.
 
 ## Executar com Docker
 
@@ -39,6 +51,7 @@ As variáveis de ambiente prevalecem sobre `.env`. Migrations estão em `backend
 
 - Rascunho preservado no `sessionStorage` da aba, inclusive durante login. Seleção e access token ficam em memória. Ao entrar, o usuário escolhe salvar ou manter o rascunho.
 - Produtos independem de categorias; categorias filtram fornecedores, que podem pertencer a várias. Sem filtro, todos os fornecedores ativos aparecem.
+- A seleção aceita de 2 a 10 fornecedores ativos distintos, com filtros opcionais por categoria e percentual mínimo de disponibilidade. Categoria e seleção de fornecedores são transitórias; comparações não são persistidas.
 - Estoque deve atender a quantidade inteira. A tabela ordena por total disponível e identifica valores parciais; a melhor oferta considera maior cobertura, depois menor total. Empates são destacados; fornecedor sem itens recebe N/D.
 - Listas salvas têm produtos distintos, quantidades de 1–9999, nome de até 100 caracteres, busca e paginação de 20. Exclusão lógica exige digitar o nome.
 - CSV é produzido no navegador com BOM, `;` e nome `lista_YYYYMMDD.csv`. Impressão usa A4.
@@ -68,15 +81,23 @@ $env:MYSQL_DATABASE='cobeco_test'
 
 Os testes não usam SQLite: domínio/validação são puros e integração executa MySQL real. O CI inclui MySQL 8.4, ruff, pytest, cobertura mínima de 80% em domínio/casos de uso, testes JavaScript, comparação do OpenAPI versionado e build Docker.
 
+### Resultados registrados na monografia
+
+A monografia relata 31 testes no backend, com 97,61% de cobertura em domínio e casos de uso, e 7 testes no frontend, além de análise estática, conferência do contrato OpenAPI e validação do Compose. Registra também o fluxo completo em navegador a 1440 × 1000 pixels, sem erros de JavaScript.
+
+As medições locais relatadas apresentam percentil 95 de 124,83 ms no catálogo e 118,45 ms na comparação, frente à meta de 500 ms. A amostra foi de 30 requisições com concorrência unitária e não caracteriza teste sob carga. Esses números documentam a validação descrita na monografia; não representam uma nova execução dos testes a cada atualização deste README.
+
 ## Documentos e legado
 
 O layout segue o [modelo HTML recebido do Figma](COBECO_figma_RF01_RF17_v2.html), atualizado pelo pull até `611d558`. A extração reproduzível está em `scripts/sync_figma_layout.py`; estilos e markup são preservados, enquanto os módulos da aplicação substituem os dados e autenticação simulados do protótipo.
 
+- [Monografia — objetivo, escopo, requisitos, casos de uso, DER, protótipos, tecnologias e considerações finais](Monografia%20e%20Demais%20Docs/COBECO_Monografia.docx)
 - [Tarefas e validações](TAREFAS.md)
 - [Decisões implementadas](relatorio_analitico_COBECO.md)
 - [Requisitos e casos de uso](analise_REQ_CasosDeUso.md)
 - [DER MySQL](diagrama_DER.md)
+- Diagramas editáveis: [casos de uso](uc.drawio) e [entidade-relacionamento](der.drawio)
 - [Contrato da API](COBECO/openapi/CONTRATO.md)
 - [Transição e dados antigos](COBECO/LEGADO.md)
 
-`COBECO/apps`, `COBECO/packages` e seus arquivos npm/Prisma são a implementação anterior preservada. Não integram o Dockerfile ou o CI atuais. Documentos de `brain`, `prj_docs` e a monografia podem descrever decisões anteriores; a referência de execução é este README e os documentos acima. Histórico, compartilhamento, integrações externas e paridade não fazem parte do fluxo atual.
+`COBECO/apps`, `COBECO/packages` e seus arquivos npm/Prisma são a implementação anterior preservada. Não integram o Dockerfile ou o CI atuais. Documentos de `brain` e `prj_docs` podem descrever decisões anteriores; a monografia atualizada documenta o MVP em FastAPI/MySQL, e as instruções de execução estão neste README. Histórico, compartilhamento, integrações externas e agrupamento por paridade não fazem parte do fluxo atual.

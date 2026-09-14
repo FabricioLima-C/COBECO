@@ -14,7 +14,7 @@ export function go(screen){
 }
 const returnFocus=new Map();
 export function openModal(id){returnFocus.set(id,document.activeElement);$(id).classList.add('open');$(id).querySelector('input:not([readonly]),button')?.focus();}
-export function closeModal(id){$(id).classList.remove('open');returnFocus.get(id)?.focus();}
+export function closeModal(id){$(id).classList.remove('open');if(id==='recoveryCodeBack')$('recoveryCodeValue').value='';returnFocus.get(id)?.focus();}
 let confirmResolve=null;
 export function finishConfirm(value){closeModal('confirmBack');const done=confirmResolve;confirmResolve=null;done?.(value);}
 export function confirm(text,{title='Confirmar',name=null,accept='Confirmar'}={}){

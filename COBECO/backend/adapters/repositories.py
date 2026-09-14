@@ -18,6 +18,21 @@ class UserTransaction:
         )
         return self.cursor.fetchone()
 
+    def recovery_code(self, user_id):
+        self.cursor.execute("SELECT code_hash FROM recovery_codes WHERE user_id=%s", (user_id,))
+        row = self.cursor.fetchone()
+        return row["code_hash"] if row else None
+
+    def set_recovery_code(self, user_id, code_hash):
+        if code_hash is None:
+            self.cursor.execute("DELETE FROM recovery_codes WHERE user_id=%s", (user_id,))
+        else:
+            self.cursor.execute(
+                "INSERT INTO recovery_codes(user_id,code_hash) VALUES (%s,%s) "
+                "ON DUPLICATE KEY UPDATE code_hash=%s",
+                (user_id, code_hash, code_hash),
+            )
+
     def create_user(self, values):
         fields = ("username", "name", "email", "password_hash", "security_question", "security_answer_hash")
         self.cursor.execute(

@@ -27,3 +27,9 @@ test('draft updates invalidate comparisons and persist independently of authenti
   session(null);assert.equal(state.token,null);assert.equal(state.draft.items.length,1);
   resetDraft();assert.equal(state.draft.items.length,0);
 });
+
+test('CSV neutralizes formulas preceded by whitespace or control characters',()=>{
+  for(const name of ['\t=1+1','\r=1+1','\n=1+1','  +1','\u0000@SUM(A1)']){
+    assert.ok(csvText({name,items:[{name:'Produto',quantity:1,unit:'un'}]}).includes(`"'${name}"`));
+  }
+});

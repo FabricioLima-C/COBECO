@@ -1,7 +1,7 @@
 import {state} from './state.js';
 import {toast} from './ui.js';
 export function csvText(draft) {
-  const cell = value => {let text=String(value); if(/^[=+@-]/.test(text)) text="'"+text;return `"${text.replaceAll('"','""')}"`;};
+  const cell = value => {let text=String(value); if(/^[\s\u0000-\u001f]*[=+@-]|^[\t\r\n]/.test(text)) text="'"+text;return `"${text.replaceAll('"','""')}"`;};
   const rows=[['Lista','Produto','Quantidade','Unidade'],...draft.items.map(i => [draft.name,i.name,i.quantity,i.unit])];
   return '\uFEFF'+rows.map(row=>row.map(cell).join(';')).join('\r\n');
 }

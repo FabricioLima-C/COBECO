@@ -1,5 +1,7 @@
 # DER — COBECO v3.1 / MySQL
 
+**Adição de segurança em 13/09/2026:** a migration [002_recovery_codes.sql](COBECO/backend/migrations/002_recovery_codes.sql) acrescenta `recovery_codes(user_id PRIMARY KEY/FK → users.id, code_hash CHAR(64))`, com `ON DELETE CASCADE`. O hash é SHA-256 de um código aleatório de 256 bits, removido após redefinição ou alteração de senha. O diagrama abaixo representa o núcleo original; o schema completo agora tem 10 tabelas físicas (8 de negócio + migrations + códigos), 8 FKs, 5 UNIQUE além das PKs e 6 CHECKs.
+
 Atualizado em 12/09/2026 conforme a decisão do usuário. Fonte executável: [001_initial.sql](COBECO/backend/migrations/001_initial.sql). O XML abaixo é gerado a partir desse schema por `scripts/sync_mysql_diagrams.py`.
 
 - Oito tabelas de negócio; `schema_migrations` é a nona tabela física e controla versões.

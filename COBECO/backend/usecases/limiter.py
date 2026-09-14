@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from threading import RLock
 from time import monotonic
 
@@ -11,6 +12,26 @@ class AttemptLimiter:
         self.clock = clock
         self.entries = {}
         self.lock = RLock()
+        self.pending = {}
+
+    @contextmanager
+    def attempt(self, keys, maximum=6, window=900):
+        # Reserve attempts atomically; never hold this lock across SQL or bcrypt.
+        with self.lock:
+            self.check(keys, maximum, window)
+            for key in keys:
+                if self.entries.get(key, (0, 0))[0] + self.pending.get(key, 0) >= maximum:
+                    raise RateLimited(1)
+            for key in keys:
+                self.pending[key] = self.pending.get(key, 0) + 1
+        try:
+            yield
+        finally:
+            with self.lock:
+                for key in keys:
+                    self.pending[key] -= 1
+                    if not self.pending[key]:
+                        del self.pending[key]
 
     def check(self, keys, maximum=6, window=900):
         now = self.clock()

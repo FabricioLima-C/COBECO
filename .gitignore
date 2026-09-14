@@ -21,6 +21,7 @@ playwright-report/
 !**/.env.example
 *.log
 .venv/
+.security-tools/
 __pycache__/
 .pytest_cache/
 .ruff_cache/

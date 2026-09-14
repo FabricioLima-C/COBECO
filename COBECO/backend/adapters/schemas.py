@@ -24,8 +24,8 @@ class Register(Input):
     email: EmailStr
     password: str
     confirm_password: str
-    security_question: str = Field(min_length=5, max_length=200)
-    security_answer: str = Field(min_length=2, max_length=100)
+    security_question: str = Field(default="Código de recuperação", min_length=5, max_length=200)
+    security_answer: str = Field(default="Não utilizado", min_length=2, max_length=100)
 
     @field_validator("password")
     @classmethod
@@ -47,12 +47,12 @@ class Register(Input):
 
 
 class Login(Input):
-    username: str = Field(min_length=1, max_length=100)
+    username: str = Field(pattern=r"^[A-Za-z0-9]{1,30}$")
     password: str = Field(min_length=1, max_length=200)
 
 
 class Recovery(Input):
-    username: str = Field(min_length=1, max_length=100)
+    username: str = Field(pattern=r"^[A-Za-z0-9]{1,30}$")
 
 
 class RecoveryVerify(Recovery):
@@ -60,8 +60,7 @@ class RecoveryVerify(Recovery):
 
 
 class Reset(Recovery):
-    answer: str | None = Field(default=None, max_length=100)
-    token: str | None = Field(default=None, max_length=200)
+    token: str = Field(min_length=32, max_length=200)
     new_password: str
     confirm_password: str
 
@@ -75,6 +74,10 @@ class Reset(Recovery):
         if self.new_password != self.confirm_password:
             raise ValueError("As senhas não coincidem.")
         return self
+
+
+class RecoveryCodeRotate(Input):
+    current_password: str = Field(min_length=1, max_length=200)
 
 
 class ProfileUpdate(Input):

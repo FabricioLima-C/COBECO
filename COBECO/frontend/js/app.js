@@ -4,7 +4,10 @@ import {initList,addItem,saveList,startNewList} from './list.js';
 import {initCompare,filterProviders,selectAll,clearSelection,calculate} from './compare.js';
 import {exportList,printList} from './export.js';
 import {$,toast,go,closeModal,finishConfirm,initModals} from './ui.js';
+import {rotateRecoveryCode,downloadRecoveryCode} from './auth.js';
 const actions={
+  'rotateRecoveryCode()':rotateRecoveryCode,'downloadRecoveryCode()':downloadRecoveryCode,
+  'closeRecoveryCode()':()=>closeModal('recoveryCodeBack'),
   'handleAuthNav()':handleAuthNav,'addItem()':addItem,'saveList()':saveList,'exportCSV()':exportList,
   'registerUser()':registerUser,'doLogin(false)':()=>doLogin(false),'doLogin(true)':()=>doLogin(true),
   'recoverFind()':recoverFind,'recoverValidate()':recoverValidate,'recoverReset()':recoverReset,

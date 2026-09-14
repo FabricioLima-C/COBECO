@@ -211,7 +211,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/RegistrationResponse"
                 }
               }
             }
@@ -979,6 +979,112 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/profile/recovery-code": {
+      "post": {
+        "tags": [
+          "Perfil"
+        ],
+        "summary": "Rotate Recovery Code",
+        "operationId": "rotate_recovery_code_api_profile_recovery_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryCodeRotate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodeResponse"
                 }
               }
             }
@@ -2200,6 +2306,7 @@
           "recovery_mode": {
             "type": "string",
             "enum": [
+              "code",
               "question",
               "log"
             ],
@@ -2430,8 +2537,7 @@
         "properties": {
           "username": {
             "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
+            "pattern": "^[A-Za-z0-9]{1,30}$",
             "title": "Username"
           },
           "password": {
@@ -2516,8 +2622,7 @@
         "properties": {
           "username": {
             "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
+            "pattern": "^[A-Za-z0-9]{1,30}$",
             "title": "Username"
           }
         },
@@ -2528,11 +2633,41 @@
         ],
         "title": "Recovery"
       },
+      "RecoveryCodeResponse": {
+        "properties": {
+          "recovery_code": {
+            "type": "string",
+            "title": "Recovery Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recovery_code"
+        ],
+        "title": "RecoveryCodeResponse"
+      },
+      "RecoveryCodeRotate": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Current Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "current_password"
+        ],
+        "title": "RecoveryCodeRotate"
+      },
       "RecoveryResponse": {
         "properties": {
           "mode": {
             "type": "string",
             "enum": [
+              "code",
               "question",
               "log"
             ],
@@ -2584,8 +2719,7 @@
         "properties": {
           "username": {
             "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
+            "pattern": "^[A-Za-z0-9]{1,30}$",
             "title": "Username"
           },
           "answer": {
@@ -2633,13 +2767,15 @@
             "type": "string",
             "maxLength": 200,
             "minLength": 5,
-            "title": "Security Question"
+            "title": "Security Question",
+            "default": "Código de recuperação"
           },
           "security_answer": {
             "type": "string",
             "maxLength": 100,
             "minLength": 2,
-            "title": "Security Answer"
+            "title": "Security Answer",
+            "default": "Não utilizado"
           }
         },
         "additionalProperties": false,
@@ -2649,42 +2785,60 @@
           "name",
           "email",
           "password",
-          "confirm_password",
-          "security_question",
-          "security_answer"
+          "confirm_password"
         ],
         "title": "Register"
+      },
+      "RegistrationResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "recovery_code": {
+            "type": "string",
+            "title": "Recovery Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "name",
+          "email",
+          "created_at",
+          "recovery_code"
+        ],
+        "title": "RegistrationResponse"
       },
       "Reset": {
         "properties": {
           "username": {
             "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
+            "pattern": "^[A-Za-z0-9]{1,30}$",
             "title": "Username"
           },
-          "answer": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Answer"
-          },
           "token": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 200
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 32,
             "title": "Token"
           },
           "new_password": {
@@ -2700,6 +2854,7 @@
         "type": "object",
         "required": [
           "username",
+          "token",
           "new_password",
           "confirm_password"
         ],

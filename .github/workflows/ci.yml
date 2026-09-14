@@ -1,5 +1,7 @@
 ﻿name: COBECO MySQL
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -42,6 +44,13 @@ jobs:
       - run: python -m pytest --cov --cov-report=term-missing --cov-report=xml
       - run: node --test frontend/tests/*.test.mjs
       - run: python -m backend.export_openapi --check
+      - name: Audit Python dependencies and high-severity static findings
+        run: |
+          python -m venv .security-tools
+          .security-tools/bin/pip install pip-audit==2.10.1 bandit==1.9.4
+          .security-tools/bin/pip-audit -r requirements.txt --no-deps --disable-pip
+          .security-tools/bin/bandit -r backend -x backend/tests -lll
+      - run: npm audit --package-lock-only --ignore-scripts --audit-level=moderate
       - run: docker build -t cobeco:ci .
       - uses: actions/upload-artifact@v4
         with:

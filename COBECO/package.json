@@ -10,6 +10,7 @@
     "packages/shared"
   ],
   "overrides": {
+    "qs": "^6.16.0",
     "esbuild": "^0.28.2"
   },
   "scripts": {

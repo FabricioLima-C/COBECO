@@ -27,17 +27,25 @@ class SessionResponse(BaseModel):
 
 
 class ConfigResponse(BaseModel):
-    recovery_mode: Literal["question", "log"]
+    recovery_mode: Literal["code", "question", "log"]
 
 
 class RecoveryResponse(BaseModel):
-    mode: Literal["question", "log"]
+    mode: Literal["code", "question", "log"]
     question: str | None = None
     message: str | None = None
 
 
 class RecoveryTokenResponse(BaseModel):
     token: str
+
+
+class RecoveryCodeResponse(BaseModel):
+    recovery_code: str
+
+
+class RegistrationResponse(UserResponse):
+    recovery_code: str
 
 
 class CategoryResponse(BaseModel):

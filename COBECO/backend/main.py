@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.adapters.database import Database
 from backend.adapters.repositories import MySQLStore
+from backend.adapters.request_limits import RequestLimits
 from backend.adapters.responses import ErrorResponse, HealthResponse
 from backend.adapters.security import TokenSecurity
 from backend.config import Settings
@@ -89,6 +90,8 @@ def create_app(settings=None, store=None, security=None):
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         return response
+
+    app.add_middleware(RequestLimits, maximum=settings.max_request_bytes)
 
     @app.get("/health", tags=["Saúde"], response_model=HealthResponse)
     def health():

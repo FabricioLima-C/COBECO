@@ -17,6 +17,7 @@ def settings():
     if os.getenv("MYSQL_TEST") != "1":
         pytest.skip("MySQL integration: set MYSQL_TEST=1 and an isolated *_test database")
     result = Settings()
+    result.recovery_mode = "question"  # Legacy academic flow tested explicitly; default is code.
     if not result.mysql_database.endswith("_test"):
         pytest.fail("Integration tests require a database ending in _test")
     return result

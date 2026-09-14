@@ -11,8 +11,10 @@ from backend.adapters.responses import (
     ListResponse,
     ListsResponse,
     ProductResponse,
+    RecoveryCodeResponse,
     RecoveryResponse,
     RecoveryTokenResponse,
+    RegistrationResponse,
     SessionResponse,
     UserResponse,
 )
@@ -22,6 +24,7 @@ from backend.adapters.schemas import (
     Login,
     ProfileUpdate,
     Recovery,
+    RecoveryCodeRotate,
     RecoveryVerify,
     Register,
     Reset,
@@ -69,7 +72,7 @@ def config(request: Request):
     return {"recovery_mode": services(request).settings.recovery_mode}
 
 
-@router.post("/auth/register", status_code=201, tags=["Autenticação"], response_model=UserResponse)
+@router.post("/auth/register", status_code=201, tags=["Autenticação"], response_model=RegistrationResponse)
 def register(data: Register, request: Request):
     services(request).limiter.request(f"register:{client_ip(request)}", 6, 900)
     return services(request).auth.register(data.model_dump())
@@ -114,6 +117,12 @@ def reset(data: Reset, request: Request):
 @router.get("/profile", tags=["Perfil"], response_model=UserResponse)
 def profile(user: User):
     return user
+
+
+@router.post("/profile/recovery-code", tags=["Perfil"], response_model=RecoveryCodeResponse)
+def rotate_recovery_code(data: RecoveryCodeRotate, request: Request, user: User):
+    services(request).limiter.request(f"profile:{user['id']}", 6, 900)
+    return services(request).auth.rotate_recovery_code(user["id"], data.current_password)
 
 
 @router.patch("/profile", tags=["Perfil"], response_model=UserResponse)

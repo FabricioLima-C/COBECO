@@ -5,6 +5,7 @@ node_modules
 *.log
 .env
 .venv
+.security-tools
 .local-mysql
 .local-test
 **/__pycache__

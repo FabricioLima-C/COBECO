@@ -183,7 +183,7 @@
     <div class="container">
       <div class="fig-4a5cbbd240 authcard">
         <h2>Recuperar senha</h2>
-        <p class="muted">Recuperação por pergunta de segurança.</p>
+        <p class="muted" id="recoveryHint">Use seu código de recuperação individual.</p>
         <div class="stepper"><div class="step active" id="s1"></div><div class="step" id="s2"></div><div class="step" id="s3"></div></div>
         <div id="recoverMsg" class="msg"></div>
         <div id="recoverStep1" class="stack">
@@ -191,10 +191,10 @@
           <button class="primary" data-action="recoverFind()">Continuar</button>
         </div>
         <div id="recoverStep2" class="stack hidden">
-          <div class="field"><label for="recQuestion">Pergunta</label><input id="recQuestion" class="input" readonly></div>
-          <div class="field"><label for="recAnswer">Resposta</label><input id="recAnswer" class="input"></div>
+          <div class="field"><label for="recQuestion">Como recuperar</label><input id="recQuestion" class="input" readonly></div>
+          <div class="field"><label for="recAnswer">Código de recuperação</label><input id="recAnswer" type="password" autocomplete="off" class="input"></div>
           <div class="fig-a49cca52be muted">Máximo de 3 tentativas.</div>
-          <button class="primary" data-action="recoverValidate()">Validar resposta</button>
+          <button class="primary" data-action="recoverValidate()">Validar</button>
         </div>
         <div id="recoverStep3" class="stack hidden">
           <div class="field"><label for="recPass">Nova senha</label><input id="recPass" class="input" type="password"></div>
@@ -281,6 +281,8 @@
               <div class="field"><label for="profNewPass2">Confirmar nova senha</label><input id="profNewPass2" type="password" class="input"></div>
             </div>
             <div class="fig-2bdf8e45fd"><button class="primary" data-action="saveProfile()">Salvar alterações</button></div>
+            <p>Guarde um código de recuperação para recuperar sua conta caso esqueça a senha. Gerar outro invalida o anterior.</p>
+            <button class="secondary" id="rotateRecoveryBtn" data-action="rotateRecoveryCode()">Gerar código de recuperação</button>
           </div>
         </div>
       </section>
@@ -305,6 +307,18 @@
 </div>
 
 <!-- CONFIRM MODAL -->
+<div id="recoveryCodeBack" role="dialog" aria-modal="true" aria-labelledby="recoveryCodeTitle" class="modalback no-print">
+  <div class="modal">
+    <h2 id="recoveryCodeTitle">Guarde seu código de recuperação</h2>
+    <p>Este código permite redefinir sua senha. Ele será mostrado somente agora. Guarde-o em um gerenciador de senhas ou baixe uma cópia e mantenha-a em local seguro. Não compartilhe.</p>
+    <label for="recoveryCodeValue">Código de uso único</label>
+    <input id="recoveryCodeValue" class="input" readonly autocomplete="off" spellcheck="false">
+    <div class="row-actions">
+      <button class="secondary" data-action="downloadRecoveryCode()">Baixar código</button>
+      <button class="primary" data-action="closeRecoveryCode()">Guardei o código</button>
+    </div>
+  </div>
+</div>
 <div id="confirmBack" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" class="modalback">
   <div class="modal">
     <h2 id="confirmTitle">Confirmar</h2>

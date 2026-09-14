@@ -27,9 +27,9 @@ docker compose up --build
 
 Interface: http://localhost:8000 · API/Swagger: http://localhost:8000/docs · Contrato: http://localhost:8000/openapi.json
 
-O Compose sobe MySQL 8.4 e a API, que aplica migrations e seed antes de servir o frontend. O banco usa volume `mysql_data`. Não use `down -v` se deseja preservar seus dados. `APP_ORIGIN` deve corresponder à URL usada no navegador; o padrão é `http://localhost:8000`. Para publicar em HTTPS, configure `APP_ENV=production` e o endereço HTTPS em `APP_ORIGIN`.
+O Compose sobe MySQL 8.4 e a API, que aplica migrations e seed antes de servir o frontend. O banco usa volume `mysql_data`. Não use `down -v` se deseja preservar seus dados. A porta da API fica restrita a `127.0.0.1`. `APP_ORIGIN` deve corresponder à origem usada no navegador, sem caminho ou barra final; o padrão é `http://localhost:8000`. Para publicar, configure um proxy HTTPS, `APP_ENV=production`, a origem HTTPS em `APP_ORIGIN` e `RECOVERY_MODE=code`. O Compose não fornece TLS por conta própria.
 
-O seed contém 5 categorias macro, 10 fornecedores fictícios, 50 produtos, 20 vínculos de categoria e 294 ofertas. Para criar a conta `demo`, defina `SEED_DEMO_PASSWORD` com senha forte; a resposta de segurança dessa conta é `cobeco`. Não há senha de demonstração padrão.
+O seed contém 5 categorias macro, 10 fornecedores fictícios, 50 produtos, 20 vínculos de categoria e 294 ofertas. `SEED_DEMO_PASSWORD` permite criar a conta `demo` somente em desenvolvimento. Essa conta não permite recuperação de senha e não pode autenticar em produção. Não há senha de demonstração padrão. Senhas e segredo JWT do exemplo devem ser substituídos; a aplicação rejeita a chave JWT de exemplo.
 
 ## Executar sem Docker
 
@@ -45,7 +45,15 @@ Copy-Item .env.example .env
 .\.venv\Scripts\python -m uvicorn backend.main:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-As variáveis de ambiente prevalecem sobre `.env`. Migrations estão em `backend/migrations`; são aplicadas por ordem e registradas em `schema_migrations`. Há oito tabelas de negócio e uma tabela técnica de migrations. DDL MySQL não é transacional; o runner usa lock e só registra a versão após concluir os comandos idempotentes.
+As variáveis de ambiente prevalecem sobre `.env`. Migrations estão em `backend/migrations`; são aplicadas por ordem e registradas em `schema_migrations`. Há oito tabelas de negócio, a tabela técnica de migrations e `recovery_codes`, que guarda somente o hash do código de recuperação de cada usuário. DDL MySQL não é transacional; o runner usa lock e só registra a versão após concluir os comandos idempotentes.
+
+### Atualização de segurança e contas existentes
+
+Antes de usar a versão corrigida, aplique as migrations com `python -m backend.seed` (automático no Docker) e reinicie a API. A migration `002_recovery_codes.sql` adiciona a tabela sem alterar ou excluir listas/usuários existentes. Configure `RECOVERY_MODE=code`; contas existentes devem entrar com sua senha atual e usar **Perfil → Gerar código de recuperação**. Guarde o código fora do navegador, preferencialmente em um gerenciador de senhas. Ele é mostrado uma única vez e pode ser baixado pelo usuário.
+
+Novos cadastros recebem um código aleatório individual. Recuperar a senha consome o código; depois de entrar, gere outro no perfil. Gerar outro código invalida o anterior e pedidos de recuperação pendentes. Alterar a senha também invalida o código anterior. Uma conta antiga sem código e sem a senha atual precisa de atendimento administrativo com verificação de identidade; não há bypass público por pergunta no modo seguro.
+
+Para gerar uma chave JWT própria, execute `python -c "import secrets; print(secrets.token_urlsafe(48))"` e guarde o resultado no `.env`. Se uma instalação já utilizou uma chave pública/de exemplo, substitua-a; os tokens antigos deixam de ser aceitos. A monografia antecede estas correções: recuperação por código e a tabela adicional são descritas no [relatório de segurança](seguranca_COBECO.md).
 
 ## Comportamento da aplicação
 
@@ -55,10 +63,11 @@ As variáveis de ambiente prevalecem sobre `.env`. Migrations estão em `backend
 - Estoque deve atender a quantidade inteira. A tabela ordena por total disponível e identifica valores parciais; a melhor oferta considera maior cobertura, depois menor total. Empates são destacados; fornecedor sem itens recebe N/D.
 - Listas salvas têm produtos distintos, quantidades de 1–9999, nome de até 100 caracteres, busca e paginação de 20. Exclusão lógica exige digitar o nome.
 - CSV é produzido no navegador com BOM, `;` e nome `lista_YYYYMMDD.csv`. Impressão usa A4.
-- Cadastro por username alfanumérico, confirmação de senha e pergunta de segurança. Perfil exige senha atual em qualquer alteração.
+- Cadastro por username alfanumérico, confirmação de senha e entrega de código individual de recuperação. Perfil exige senha atual nas alterações e na geração de outro código.
 - Access JWT: 15 minutos; refresh: 7 dias em cookie httpOnly/SameSite Strict. Uma sessão renovável por conta; login novo substitui a sessão anterior. Logout, reset e mudança de senha invalidam a sessão no servidor.
 - Login: seis falhas por identificador/IP bloqueiam por 15 minutos. Recuperação: três falhas por 15 minutos. O limitador é em memória; execute **um worker**. Reiniciar a API limpa esses contadores.
-- Recuperação acadêmica: `RECOVERY_MODE=question` (padrão) ou `log` em desenvolvimento. No modo log, o link tem token de uso único, válido por 15 minutos. Não há serviço de e-mail.
+- Recuperação: `RECOVERY_MODE=code` é o padrão e o único modo permitido em produção. A verificação do código gera um token de uso único válido por 15 minutos; `/auth/reset` sempre exige esse token. `question` e `log` são opções legadas de desenvolvimento; a resposta pública não revela a pergunta cadastrada. Não há serviço de e-mail.
+- Corpo HTTP limitado a 64 KiB antes do processamento de JSON, inclusive sem `Content-Length`; tempo total de envio de 10 segundos. O Docker limita a concorrência a 64 conexões/tarefas. As reservas do limitador não mantêm lock global durante bcrypt ou SQL; o armazenamento continua local a um único processo.
 
 ## Validação
 
@@ -80,6 +89,8 @@ $env:MYSQL_DATABASE='cobeco_test'
 ```
 
 Os testes não usam SQLite: domínio/validação são puros e integração executa MySQL real. O CI inclui MySQL 8.4, ruff, pytest, cobertura mínima de 80% em domínio/casos de uso, testes JavaScript, comparação do OpenAPI versionado e build Docker.
+
+O CI também executa pip-audit, Bandit para achados de severidade alta e npm audit do lockfile legado. Os alertas médios de SQL dinâmico do Bandit foram revisados: os valores são parametrizados e os identificadores são controlados internamente.
 
 ### Resultados registrados na monografia
 

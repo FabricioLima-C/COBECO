@@ -27,10 +27,10 @@
       JWT_SECRET: ${JWT_SECRET:?Configure JWT_SECRET in .env}
       APP_ENV: ${APP_ENV:-development}
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8000}
-      RECOVERY_MODE: ${RECOVERY_MODE:-question}
+      RECOVERY_MODE: ${RECOVERY_MODE:-code}
       SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       mysql:
         condition: service_healthy

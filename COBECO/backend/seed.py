@@ -66,6 +66,8 @@ PRODUCTS = [
 
 
 def seed(database, settings):
+    if settings.app_env == "production" and settings.seed_demo_password:
+        raise ValueError("Conta demo não é permitida em produção")
     with database.transaction() as c:
         for index, name in enumerate(CATEGORIES, 1):
             c.execute(

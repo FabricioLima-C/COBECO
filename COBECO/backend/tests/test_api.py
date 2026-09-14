@@ -117,11 +117,14 @@ def test_unknown_login_and_expired_token(client, security, settings):
 
 def test_question_reset_revokes_session(client, account, logged):
     result = client.post("/api/auth/recovery", json={"username": account["username"]})
-    assert result.json()["question"] == account["security_question"]
+    assert result.json() == client.post("/api/auth/recovery", json={"username": "unknown"}).json()
+    token = client.post(
+        "/api/auth/recovery/verify", json={"username": account["username"], "answer": "Cobeco"}
+    ).json()["token"]
     new_password = "New-password-456!"
     data = {
         "username": account["username"],
-        "answer": "  Cobeco  ",
+        "token": token,
         "new_password": new_password,
         "confirm_password": new_password,
     }
@@ -139,7 +142,7 @@ def test_reset_three_failures_and_unknown_account(client, account):
     assert client.post("/api/auth/recovery", json={"username": "unknown"}).status_code == 200
     data = {
         "username": account["username"],
-        "answer": "wrong",
+        "token": "invalid-token-" * 4,
         "new_password": "Password2!",
         "confirm_password": "Password2!",
     }

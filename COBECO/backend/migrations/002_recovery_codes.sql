@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS recovery_codes (
+ user_id BIGINT PRIMARY KEY,
+ code_hash CHAR(64) NOT NULL,
+ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

@@ -7,4 +7,4 @@ COPY backend ./backend
 COPY frontend ./frontend
 USER cobeco
 EXPOSE 8000
-CMD ["sh", "-c", "python -m backend.seed && uvicorn backend.main:create_app --factory --host 0.0.0.0 --port 8000 --workers 1"]
+CMD ["sh", "-c", "python -m backend.seed && uvicorn backend.main:create_app --factory --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 64 --timeout-keep-alive 5"]

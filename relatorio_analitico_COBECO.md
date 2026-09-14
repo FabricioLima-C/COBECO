@@ -1,4 +1,4 @@
-# 📋 RELATÓRIO ANALÍTICO FINAL — COBECO MVP Acadêmico v3.1
+# 📋 RELATÓRIO ANALÍTICO — COBECO MVP Acadêmico v3.1
 
 **Documento de Decisão Arquitetural (ADR) Consolidado**
 **Data:** 12 de Setembro de 2026
@@ -66,7 +66,7 @@ Este documento consolida **todas as decisões arquiteturais** do projeto COBECO 
 | Aspecto                  | Detalhe                                                                                       |
 | ------------------------ | --------------------------------------------------------------------------------------------- |
 | **Contexto**       | Banco simples, ACID, sem servidor externo                                                     |
-| **Decisão**       | SQLite3 com`PRAGMA journal_mode=WAL` e `PRAGMA foreign_keys=ON`                           | - Revisão usar o SGBD MySql
+| **Decisão**       | SQLite3 com`PRAGMA journal_mode=WAL` e `PRAGMA foreign_keys=ON`                           |
 | **Justificativa**  | KISS máximo. Zero configuração. ACID suportado. Adequado para single-user/low-concurrency. |
 | **Consequências** | Single-writer. Sem tipos ENUM. Arquivo único (volume Docker obrigatório).                   |
 | **Configuração** | `busy_timeout=5000`, `row_factory=sqlite3.Row`, volume `./data:/app/data`               |
@@ -397,7 +397,7 @@ cobeco/
 | 🎯**Sprint**      | `P0`, `sprint-N` | Sprint planning realizado      | Desenvolvimento iniciado  |
 | 🔨**In Progress** | `in-progress`      | Branch criada (`feat/UC-XX`) | PR aberto                 |
 | 👀**Review**      | `review`           | PR aberto + CI verde           | Aprovado por ≥1 reviewer |
-| ✅ **Done**      | `done`             | Merge em`main`               | Deploy em staging         |
+| ✅**Done**        | `done`             | Merge em`main`               | Deploy em staging         |
 
 ### 5.3 Convenções de Branch
 

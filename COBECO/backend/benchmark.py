@@ -19,6 +19,7 @@ def run(base_url, samples):
             {
                 "items": [{"product_id": 1, "quantity": 2}, {"product_id": 2, "quantity": 1}],
                 "supplier_ids": list(range(1, 11)),
+                "category_ids": list(range(1, 6)),
             },
         ),
     ]

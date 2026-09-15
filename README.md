@@ -2,13 +2,15 @@
 
 O **COBECO (Cotação de Bens de Consumo)** é uma aplicação web acadêmica para montar listas de compras e comparar seu custo e cobertura entre fornecedores. Destina-se a consumidores, pequenos empresários, estudantes e profissionais que planejam compras de múltiplos itens, com interface voltada ao uso em desktop.
 
-A implementação utiliza **Python 3.12/FastAPI, MySQL/InnoDB e HTML/CSS/JavaScript em módulos** e está em `COBECO/backend` e `COBECO/frontend`. Preços e estoques vêm de catálogo próprio com carga determinística, permitindo uma demonstração reproduzível e independente de serviços externos. O objetivo, o escopo e a modelagem estão descritos na [monografia atualizada](Monografia%20e%20Demais%20Docs/COBECO_Monografia.docx).
+A implementação utiliza **Python 3.12/FastAPI, MySQL/InnoDB e HTML/CSS/JavaScript em módulos** e está em `COBECO/backend` e `COBECO/frontend`. Preços e estoques vêm de catálogo próprio com carga determinística, permitindo uma demonstração reproduzível e independente de serviços externos. O objetivo, o escopo e a modelagem estão descritos na [monografia atualizada](Monografia%20e%20Demais%20Docs/COBECO_Monografia_new.docx).
 
 Visitantes podem criar listas, escolher fornecedores, comparar disponibilidade/preços, exportar CSV e imprimir. A autenticação é exigida para salvar, consultar ou editar listas pessoais e gerenciar o perfil.
 
 ## Escopo do MVP
 
-O fluxo principal consiste em montar a lista com produtos do catálogo, selecionar de **2 a 10 fornecedores ativos**, comparar os resultados e identificar a melhor oferta. A comparação apresenta custo total, percentual de cobertura e itens ausentes por fornecedor; a melhor oferta prioriza a **maior cobertura** e, em seguida, o **menor custo total**.
+O fluxo principal consiste em selecionar **uma ou mais categorias de fornecedores**, montar a lista com produtos do catálogo, selecionar de **2 a 10 fornecedores ativos** dessas categorias, comparar os resultados e identificar a melhor oferta. A comparação apresenta custo total, percentual de cobertura e itens ausentes por fornecedor; a melhor oferta prioriza a **maior cobertura** e, em seguida, o **menor custo total**.
+
+A implementação incremental v3.2 está registrada em [TAREFAS.md](TAREFAS.md), com regras consolidadas em [ESPECIFICACAO_V32.md](ESPECIFICACAO_V32.md). O primeiro incremento entrega categorias múltiplas na interface e API. PDF no servidor, seed de 11 categorias e demais adequações continuam pendentes conforme o checklist. A monografia abaixo descreve a entrega anterior.
 
 A monografia organiza o projeto em **17 requisitos funcionais (RF01–RF17)**, **10 não funcionais (RNF01–RNF10)** e **26 casos de uso (UC01–UC26)**, abrangendo conta e autenticação, perfil, gestão de listas, fornecedores, comparação, exportação e impressão.
 
@@ -58,10 +60,11 @@ Para gerar uma chave JWT própria, execute `python -c "import secrets; print(sec
 ## Comportamento da aplicação
 
 - Rascunho preservado no `sessionStorage` da aba, inclusive durante login. Seleção e access token ficam em memória. Ao entrar, o usuário escolhe salvar ou manter o rascunho.
-- Produtos independem de categorias; categorias filtram fornecedores, que podem pertencer a várias. Sem filtro, todos os fornecedores ativos aparecem.
-- A seleção aceita de 2 a 10 fornecedores ativos distintos, com filtros opcionais por categoria e percentual mínimo de disponibilidade. Categoria e seleção de fornecedores são transitórias; comparações não são persistidas.
+- Produtos independem de categorias; fornecedores podem pertencer a várias. A seleção obrigatória de uma ou mais categorias mostra a união de fornecedores ativos, sem duplicatas. Antes de montar a lista, a tela permite consultar seus nomes; a disponibilidade é calculada depois de adicionar itens.
+- A seleção aceita de 2 a 10 fornecedores ativos distintos pertencentes às categorias escolhidas, com filtro opcional por percentual mínimo de disponibilidade. Categorias e fornecedores ficam em memória da aba; recarregar exige selecionar categorias novamente, preservando o rascunho. Comparações não são persistidas.
 - Estoque deve atender a quantidade inteira. A tabela ordena por total disponível e identifica valores parciais; a melhor oferta considera maior cobertura, depois menor total. Empates são destacados; fornecedor sem itens recebe N/D.
 - Listas salvas têm produtos distintos, quantidades de 1–9999, nome de até 100 caracteres, busca e paginação de 20. Exclusão lógica exige digitar o nome.
+- Salvar e comparar exigem `category_ids` válido na API. Categorias não são gravadas na lista: listas anteriores continuam legíveis, e a interface solicita seleção ao abri-las se a aba não tiver categorias escolhidas. Alterar categorias limpa fornecedores selecionados e resultados anteriores.
 - CSV é produzido no navegador com BOM, `;` e nome `lista_YYYYMMDD.csv`. Impressão usa A4.
 - Cadastro por username alfanumérico, confirmação de senha e entrega de código individual de recuperação. Perfil exige senha atual nas alterações e na geração de outro código.
 - Access JWT: 15 minutos; refresh: 7 dias em cookie httpOnly/SameSite Strict. Uma sessão renovável por conta; login novo substitui a sessão anterior. Logout, reset e mudança de senha invalidam a sessão no servidor.
@@ -70,6 +73,10 @@ Para gerar uma chave JWT própria, execute `python -c "import secrets; print(sec
 - Corpo HTTP limitado a 64 KiB antes do processamento de JSON, inclusive sem `Content-Length`; tempo total de envio de 10 segundos. O Docker limita a concorrência a 64 conexões/tarefas. As reservas do limitador não mantêm lock global durante bcrypt ou SQL; o armazenamento continua local a um único processo.
 
 ## Validação
+
+### Atualização do contrato de categorias
+
+API e frontend devem ser atualizados juntos. Reinicie a API e recarregue as abas após esta atualização: o campo opcional `category_id` foi substituído por `category_ids` obrigatório em disponibilidade, comparação e salvamento. Clientes antigos recebem 422. Este incremento não exige migration ou nova carga de seed.
 
 ```powershell
 cd COBECO
@@ -102,7 +109,7 @@ As medições locais relatadas apresentam percentil 95 de 124,83 ms no catálogo
 
 O layout segue o [modelo HTML recebido do Figma](COBECO_figma_RF01_RF17_v2.html), atualizado pelo pull até `611d558`. A extração reproduzível está em `scripts/sync_figma_layout.py`; estilos e markup são preservados, enquanto os módulos da aplicação substituem os dados e autenticação simulados do protótipo.
 
-- [Monografia — objetivo, escopo, requisitos, casos de uso, DER, protótipos, tecnologias e considerações finais](Monografia%20e%20Demais%20Docs/COBECO_Monografia.docx)
+- [Monografia — objetivo, escopo, requisitos, casos de uso, DER, protótipos, tecnologias e considerações finais](Monografia%20e%20Demais%20Docs/COBECO_Monografia_new.docx)
 - [Tarefas e validações](TAREFAS.md)
 - [Decisões implementadas](relatorio_analitico_COBECO.md)
 - [Requisitos e casos de uso](analise_REQ_CasosDeUso.md)

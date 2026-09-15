@@ -7,6 +7,7 @@ export function message(id,text,type='err'){const node=$(id);node.className='msg
 export function go(screen){
   if(['lists','profile'].includes(screen)&&!state.user){screen='login';toast('Faça login para acessar esta área.');}
   if(screen==='providers'&&!state.draft.items.length){screen='builder';toast('Adicione ao menos um produto.');}
+  if(['builder','providers'].includes(screen)&&!state.categoryIds.length){state.categoryReturn=screen;screen='categories';}
   document.querySelectorAll('.screen').forEach(node=>node.classList.toggle('active',node.id===screen));
   document.querySelectorAll('.nav button').forEach(node=>node.classList.toggle('active',node.id==='n-'+screen));
   state.screen=screen;window.dispatchEvent(new CustomEvent('screen-changed',{detail:screen}));

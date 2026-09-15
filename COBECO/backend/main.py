@@ -23,7 +23,7 @@ def create_app(settings=None, store=None, security=None):
     settings = settings or Settings()
     app = FastAPI(
         title="COBECO",
-        version="3.1.0",
+        version="3.2.0",
         description="Comparação de listas — MySQL/InnoDB",
         responses={code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 422, 429, 503)},
     )

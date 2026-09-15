@@ -3,7 +3,7 @@
   "info": {
     "title": "COBECO",
     "description": "Comparação de listas — MySQL/InnoDB",
-    "version": "3.1.0"
+    "version": "3.2.0"
   },
   "paths": {
     "/health": {
@@ -1475,6 +1475,111 @@
         }
       }
     },
+    "/api/suppliers/search": {
+      "post": {
+        "tags": [
+          "Catálogo público"
+        ],
+        "summary": "Suppliers",
+        "operationId": "suppliers_api_suppliers_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategorySelection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Suppliers Api Suppliers Search Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/compare": {
       "post": {
         "tags": [
@@ -2125,6 +2230,16 @@
     "schemas": {
       "Availability": {
         "properties": {
+          "category_ids": {
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0.0
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Category Ids"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/Item"
@@ -2133,23 +2248,12 @@
             "maxItems": 100,
             "minItems": 1,
             "title": "Items"
-          },
-          "category_id": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "exclusiveMinimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Category Id"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
+          "category_ids",
           "items"
         ],
         "title": "Availability"
@@ -2183,8 +2287,38 @@
         ],
         "title": "CategoryResponse"
       },
+      "CategorySelection": {
+        "properties": {
+          "category_ids": {
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0.0
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Category Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "category_ids"
+        ],
+        "title": "CategorySelection"
+      },
       "Comparison": {
         "properties": {
+          "category_ids": {
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0.0
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Category Ids"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/Item"
@@ -2208,6 +2342,7 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
+          "category_ids",
           "items",
           "supplier_ids"
         ],
@@ -2252,6 +2387,13 @@
             "type": "string",
             "title": "Supplier Name"
           },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryResponse"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
           "available_items": {
             "items": {
               "type": "string"
@@ -2293,6 +2435,7 @@
         "required": [
           "supplier_id",
           "supplier_name",
+          "categories",
           "available_items",
           "missing_items",
           "coverage",
@@ -2879,6 +3022,16 @@
       },
       "ShoppingList": {
         "properties": {
+          "category_ids": {
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0.0
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Category Ids"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/Item"
@@ -2898,10 +3051,37 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
+          "category_ids",
           "items",
           "name"
         ],
         "title": "ShoppingList"
+      },
+      "SupplierResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryResponse"
+            },
+            "type": "array",
+            "title": "Categories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "categories"
+        ],
+        "title": "SupplierResponse"
       },
       "UserResponse": {
         "properties": {

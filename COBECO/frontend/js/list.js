@@ -39,6 +39,7 @@ async function searchProducts(){
 }
 export async function saveList(){
   if(!state.draft.items.length||!state.draft.name.trim())return toast('Informe o nome e adicione ao menos um produto.',true);
+  if(!state.categoryIds.length){go('builder');return toast('Selecione ao menos uma categoria antes de salvar.',true);}
   if(!state.user)return showAuth();
   const button=document.querySelector('[data-action="saveList()"]');
   await busy(button,async()=>{try{

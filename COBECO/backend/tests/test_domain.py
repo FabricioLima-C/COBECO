@@ -75,18 +75,18 @@ def test_rate_limit_window_starts_on_sixth_failure():
 @pytest.mark.parametrize("quantity", [0, -1, 10000, 1.5, True, "1"])
 def test_invalid_quantity(quantity):
     with pytest.raises(ValidationError):
-        ShoppingList(name="Lista", items=[{"product_id": 1, "quantity": quantity}])
+        ShoppingList(name="Lista", category_ids=[1], items=[{"product_id": 1, "quantity": quantity}])
 
 
 def test_duplicate_products_and_suppliers():
     item = {"product_id": 1, "quantity": 1}
     with pytest.raises(ValidationError):
-        ShoppingList(name="Lista", items=[item, item])
+        ShoppingList(name="Lista", category_ids=[1], items=[item, item])
     with pytest.raises(ValidationError):
-        Comparison(items=[item], supplier_ids=[1, 1])
+        Comparison(items=[item], category_ids=[1], supplier_ids=[1, 1])
     with pytest.raises(ValidationError):
-        ShoppingList(name="   ", items=[item])
-    assert ShoppingList(name=" Lista ", items=[{**item, "quantity": 9999}]).name == "Lista"
+        ShoppingList(name="   ", category_ids=[1], items=[item])
+    assert ShoppingList(name=" Lista ", category_ids=[1], items=[{**item, "quantity": 9999}]).name == "Lista"
 
 
 @pytest.mark.parametrize("password", ["short", "abcdefgh123!", "ABCDEFGH!", "ABCDEFGH123", "Á" * 73])

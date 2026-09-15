@@ -9,7 +9,11 @@ from backend.domain.errors import BusinessError
 from backend.seed import seed
 
 pytestmark = pytest.mark.mysql
-LIST = {"name": "Compras", "items": [{"product_id": 1, "quantity": 2}, {"product_id": 2, "quantity": 1}]}
+LIST = {
+    "name": "Compras",
+    "category_ids": [1, 2, 3, 4, 5],
+    "items": [{"product_id": 1, "quantity": 2}, {"product_id": 2, "quantity": 1}],
+}
 
 
 def test_public_catalog_comparison_and_private_boundary(client):
@@ -22,27 +26,17 @@ def test_public_catalog_comparison_and_private_boundary(client):
     assert client.get("/api/products?q=  ").json() == []
     assert client.get("/api/products?q=%25%25").json() == []
     assert client.get("/api/lists").status_code == 401
-    rows = client.post("/api/suppliers/availability", json={"items": LIST["items"]}).json()
+    request = {"items": LIST["items"], "category_ids": LIST["category_ids"]}
+    rows = client.post("/api/suppliers/availability", json=request).json()
     assert len(rows) == 10
+    assert len(client.post("/api/suppliers/availability", json={**request, "category_ids": [1]}).json()) == 4
     assert (
-        len(
-            client.post("/api/suppliers/availability", json={"items": LIST["items"], "category_id": 1}).json()
-        )
-        == 4
+        client.post("/api/suppliers/availability", json={**request, "category_ids": [999]}).status_code == 404
     )
-    assert (
-        client.post(
-            "/api/suppliers/availability", json={"items": LIST["items"], "category_id": 999}
-        ).status_code
-        == 404
-    )
-    result = client.post("/api/compare", json={"items": LIST["items"], "supplier_ids": [1, 2]}).json()
+    result = client.post("/api/compare", json={**request, "supplier_ids": [1, 2]}).json()
     assert len(result["rows"]) == 2
-    assert (
-        client.post("/api/compare", json={"items": LIST["items"], "supplier_ids": [1, 999]}).status_code
-        == 422
-    )
-    assert client.post("/api/compare", json={"items": LIST["items"], "supplier_ids": [1]}).status_code == 422
+    assert client.post("/api/compare", json={**request, "supplier_ids": [1, 999]}).status_code == 422
+    assert client.post("/api/compare", json={**request, "supplier_ids": [1]}).status_code == 422
 
 
 def test_registration_duplicate_validation_no_secret_echo(client, account):
@@ -235,7 +229,7 @@ def test_lists_atomic_ownership_pagination_search_and_delete(client, logged, dat
 
 def test_invalid_product_and_rollback(client, logged, app, database, monkeypatch):
     user = app.state.auth.authenticate(logged["Authorization"][7:])
-    bad = {"name": "Não salvar", "items": [{"product_id": 999999, "quantity": 1}]}
+    bad = {**LIST, "name": "Não salvar", "items": [{"product_id": 999999, "quantity": 1}]}
     assert client.post("/api/lists", headers=logged, json=bad).status_code == 422
     assert client.get("/api/lists", headers=logged).json()["total"] == 0
     original = MySQLStore.read_list

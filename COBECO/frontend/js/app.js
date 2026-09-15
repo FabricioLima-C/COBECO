@@ -2,10 +2,12 @@
 import {initAuth,doLogin,registerUser,updatePasswordRules,handleAuthNav,recoverFind,recoverValidate,recoverReset,saveProfile,showReset} from './auth.js';
 import {initList,addItem,saveList,startNewList} from './list.js';
 import {initCompare,filterProviders,selectAll,clearSelection,calculate} from './compare.js';
+import {initCategories,continueCategories,editCategories} from './categories.js';
 import {exportList,printList} from './export.js';
 import {$,toast,go,closeModal,finishConfirm,initModals} from './ui.js';
 import {rotateRecoveryCode,downloadRecoveryCode} from './auth.js';
 const actions={
+  'continueCategories()':continueCategories,'editCategories()':editCategories,
   'rotateRecoveryCode()':rotateRecoveryCode,'downloadRecoveryCode()':downloadRecoveryCode,
   'closeRecoveryCode()':()=>closeModal('recoveryCodeBack'),
   'handleAuthNav()':handleAuthNav,'addItem()':addItem,'saveList()':saveList,'exportCSV()':exportList,
@@ -19,7 +21,7 @@ const actions={
 for(const screen of ['landing','builder','lists','providers','profile','login','register','recover'])actions[`go('${screen}')`]=()=>go(screen);
 document.querySelectorAll('button[data-action]').forEach(button=>{const handler=actions[button.dataset.action];if(handler)button.addEventListener('click',handler);});
 $('regPass').addEventListener('input',updatePasswordRules);$('range').addEventListener('input',filterProviders);
-initModals();initAuth();initList();initCompare();
+initModals();initAuth();initList();initCompare();initCategories();
 window.addEventListener('beforeprint',()=>document.getElementById(document.getElementById('results').classList.contains('active')?'results':'builder').classList.add('print-active'));
 window.addEventListener('afterprint',()=>document.querySelectorAll('.print-active').forEach(node=>node.classList.remove('print-active')));
 window.addEventListener('storage-error',()=>toast('Não foi possível preservar o rascunho. Mantenha esta aba aberta.',true));

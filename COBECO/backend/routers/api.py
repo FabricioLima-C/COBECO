@@ -16,10 +16,12 @@ from backend.adapters.responses import (
     RecoveryTokenResponse,
     RegistrationResponse,
     SessionResponse,
+    SupplierResponse,
     UserResponse,
 )
 from backend.adapters.schemas import (
     Availability,
+    CategorySelection,
     Comparison,
     Login,
     ProfileUpdate,
@@ -147,6 +149,11 @@ def products(request: Request, q: str = Query(min_length=2, max_length=100)):
 @router.post("/suppliers/availability", tags=["Comparação pública"], response_model=list[ComparisonRow])
 def availability(data: Availability, request: Request):
     return services(request).shopping.availability(data.model_dump())
+
+
+@router.post("/suppliers/search", tags=["Catálogo público"], response_model=list[SupplierResponse])
+def suppliers(data: CategorySelection, request: Request):
+    return services(request).store.suppliers(data.category_ids)
 
 
 @router.post("/compare", tags=["Comparação pública"], response_model=ComparisonResponse)

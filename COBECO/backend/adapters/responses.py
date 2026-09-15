@@ -60,9 +60,16 @@ class ProductResponse(BaseModel):
     unit: str
 
 
+class SupplierResponse(BaseModel):
+    id: int
+    name: str
+    categories: list[CategoryResponse]
+
+
 class ComparisonRow(BaseModel):
     supplier_id: int
     supplier_name: str
+    categories: list[CategoryResponse]
     available_items: list[str]
     missing_items: list[str]
     coverage: float = Field(ge=0, le=100)

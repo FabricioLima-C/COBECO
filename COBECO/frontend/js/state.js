@@ -5,7 +5,7 @@ try {
   draft = stored && typeof stored.name === 'string' && Array.isArray(stored.items) ? stored : EMPTY();
   draft.items = draft.items.filter(i => Number.isInteger(i.product_id) && i.product_id > 0 && Number.isInteger(i.quantity) && i.quantity >= 1 && i.quantity <= 9999 && typeof i.name === 'string').slice(0, 100);
 } catch { draft = EMPTY(); }
-export const state = {draft, user: null, token: null, selected: new Set(), category: null, minimum: 0, suppliers: [], result: null, revision: 0};
+export const state = {draft, user: null, token: null, selected: new Set(), categoryIds: [], minimum: 0, suppliers: [], result: null, revision: 0};
 export function persist() {
   try { sessionStorage.setItem('cobeco:draft', JSON.stringify(state.draft)); }
   catch { window.dispatchEvent(new CustomEvent('storage-error')); }
@@ -17,7 +17,12 @@ export function changed() {
   window.dispatchEvent(new CustomEvent('draft-changed'));
 }
 export function resetDraft() {
-  state.draft = EMPTY(); state.selected.clear(); changed();
+  state.draft = EMPTY(); setCategories([]); changed();
+}
+export function setCategories(ids) {
+  state.categoryIds = [...new Set(ids)].sort((a,b)=>a-b);
+  state.selected.clear(); state.suppliers = []; state.result = null; state.revision++;
+  window.dispatchEvent(new CustomEvent('categories-changed'));
 }
 export function session(data) {
   state.user = data?.user || null; state.token = data?.access_token || null;
@@ -25,4 +30,4 @@ export function session(data) {
   try { localStorage.removeItem('accessToken'); localStorage.removeItem('user'); } catch { /* Storage may be disabled. */ }
   window.dispatchEvent(new CustomEvent('session-changed'));
 }
-export function payload() { return {name: state.draft.name.trim(), items: state.draft.items.map(({product_id,quantity}) => ({product_id,quantity}))}; }
+export function payload() { return {name: state.draft.name.trim(), items: state.draft.items.map(({product_id,quantity}) => ({product_id,quantity})), category_ids: [...state.categoryIds]}; }

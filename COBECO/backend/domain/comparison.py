@@ -22,6 +22,7 @@ def compare(items: list[dict], suppliers: list[dict], offers: list[dict]) -> dic
             {
                 "supplier_id": supplier["id"],
                 "supplier_name": supplier["name"],
+                "categories": supplier.get("categories", []),
                 "available_items": available,
                 "missing_items": missing,
                 "coverage": round(len(available) / len(items) * 100, 2),

@@ -102,21 +102,49 @@ class MySQLStore:
             for i in items
         ]
 
-    def catalog(self, items, category_id=None):
+    @staticmethod
+    def validate_categories(c, category_ids):
+        if not category_ids or len(set(category_ids)) != len(category_ids):
+            raise BusinessError("INVALID_CATEGORIES", "Selecione ao menos uma categoria, sem repetir.")
+        placeholders = ",".join(["%s"] * len(category_ids))
+        c.execute(f"SELECT id FROM categories WHERE id IN ({placeholders}) FOR SHARE", category_ids)
+        if len(c.fetchall()) != len(category_ids):
+            raise BusinessError("CATEGORY_NOT_FOUND", "Categoria não encontrada.", 404)
+
+    @staticmethod
+    def read_suppliers(c, category_ids):
+        MySQLStore.validate_categories(c, category_ids)
+        placeholders = ",".join(["%s"] * len(category_ids))
+        c.execute(
+            "SELECT s.id,s.name FROM suppliers s WHERE s.active=1 AND EXISTS "
+            "(SELECT 1 FROM supplier_categories sc WHERE sc.supplier_id=s.id "
+            f"AND sc.category_id IN ({placeholders})) ORDER BY s.name,s.id",
+            category_ids,
+        )
+        suppliers = c.fetchall()
+        if not suppliers:
+            return []
+        supplier_ids = [s["id"] for s in suppliers]
+        placeholders = ",".join(["%s"] * len(supplier_ids))
+        c.execute(
+            "SELECT sc.supplier_id,c.id,c.name,c.description FROM supplier_categories sc "
+            "JOIN categories c ON c.id=sc.category_id "
+            f"WHERE sc.supplier_id IN ({placeholders}) ORDER BY c.name,c.id",
+            supplier_ids,
+        )
+        categories = {sid: [] for sid in supplier_ids}
+        for row in c.fetchall():
+            categories[row["supplier_id"]].append({k: row[k] for k in ("id", "name", "description")})
+        return [{**s, "categories": categories[s["id"]]} for s in suppliers]
+
+    def suppliers(self, category_ids):
+        with self.database.transaction() as c:
+            return self.read_suppliers(c, category_ids)
+
+    def catalog(self, items, category_ids):
         with self.database.transaction() as c:
             requested = self.validate_items(c, items)
-            if category_id is not None:
-                c.execute("SELECT id FROM categories WHERE id=%s", (category_id,))
-                if not c.fetchone():
-                    raise BusinessError("CATEGORY_NOT_FOUND", "Categoria não encontrada.", 404)
-                c.execute(
-                    """SELECT s.id,s.name FROM suppliers s JOIN supplier_categories sc
-                    ON sc.supplier_id=s.id WHERE s.active=1 AND sc.category_id=%s ORDER BY s.name""",
-                    (category_id,),
-                )
-            else:
-                c.execute("SELECT id,name FROM suppliers WHERE active=1 ORDER BY name")
-            suppliers = c.fetchall()
+            suppliers = self.read_suppliers(c, category_ids)
             ids = [i["product_id"] for i in items]
             c.execute(
                 "SELECT supplier_id,product_id,price,stock,active FROM supplier_products "
@@ -168,6 +196,7 @@ class MySQLStore:
         with self.database.transaction() as c:
             if list_id is not None:
                 self.read_list(c, user_id, list_id, lock=True)
+            self.validate_categories(c, data["category_ids"])
             self.validate_items(c, data["items"])
             if list_id is None:
                 c.execute("INSERT INTO lists(user_id,name) VALUES (%s,%s)", (user_id, data["name"]))

@@ -8,14 +8,16 @@ class Shopping:
         self.store = store
 
     def availability(self, data):
-        items, suppliers, offers = self.store.catalog(data["items"], data.get("category_id"))
+        items, suppliers, offers = self.store.catalog(data["items"], data["category_ids"])
         return compare(items, suppliers, offers)["rows"]
 
     def comparison(self, data):
-        items, suppliers, offers = self.store.catalog(data["items"])
+        items, suppliers, offers = self.store.catalog(data["items"], data["category_ids"])
         selected = [s for s in suppliers if s["id"] in data["supplier_ids"]]
         if len(selected) != len(data["supplier_ids"]):
-            raise BusinessError("INVALID_SUPPLIER", "Selecione fornecedores ativos e existentes.")
+            raise BusinessError(
+                "INVALID_SUPPLIER", "Selecione fornecedores ativos das categorias escolhidas."
+            )
         return compare(items, selected, offers)
 
     def save(self, user_id, data, list_id=None):

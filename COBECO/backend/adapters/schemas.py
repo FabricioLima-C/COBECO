@@ -115,11 +115,22 @@ class Items(Input):
         return value
 
 
-class Availability(Items):
-    category_id: PositiveId | None = None
+class CategorySelection(Input):
+    category_ids: list[PositiveId] = Field(min_length=1, max_length=100)
+
+    @field_validator("category_ids")
+    @classmethod
+    def unique_categories(cls, value):
+        if len(set(value)) != len(value):
+            raise ValueError("Selecione categorias diferentes.")
+        return value
 
 
-class Comparison(Items):
+class Availability(Items, CategorySelection):
+    pass
+
+
+class Comparison(Availability):
     supplier_ids: list[PositiveId] = Field(min_length=2, max_length=10)
 
     @field_validator("supplier_ids")
@@ -130,7 +141,7 @@ class Comparison(Items):
         return value
 
 
-class ShoppingList(Items):
+class ShoppingList(Availability):
     name: str = Field(min_length=1, max_length=100)
 
     @field_validator("name")

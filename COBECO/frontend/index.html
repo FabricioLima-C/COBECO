@@ -58,6 +58,20 @@
     </div>
   </main>
 
+  <main id="categories" class="screen">
+    <div class="container">
+      <section class="panel">
+        <div class="panel-h"><div><strong>Escolha as categorias</strong><p class="muted">Selecione uma ou mais categorias de fornecedores antes de montar sua lista.</p></div></div>
+        <div class="panel-b">
+          <fieldset class="category-options"><legend>Categorias de fornecedores</legend><div id="categoryOptions" class="category-grid"></div></fieldset>
+          <p id="categorySuppliers" class="muted" role="status" aria-live="polite">Selecione ao menos uma categoria para consultar fornecedores.</p>
+          <p class="muted">As categorias filtram fornecedores. Você pode adicionar qualquer produto do catálogo.</p>
+        </div>
+        <div class="footerbar"><button class="secondary" id="retryCategories">Atualizar categorias</button><button class="primary" id="continueCategories" data-action="continueCategories()" disabled>Continuar para a lista</button></div>
+      </section>
+    </div>
+  </main>
+
   <!-- BUILDER / RF07 -->
   <main id="builder" class="screen">
     <div class="container">
@@ -80,6 +94,7 @@
         </div>
         <div class="panel-b">
           <div class="fig-bf4a218e05 field">
+            <div class="category-summary no-print"><span id="builderCategories" class="muted"></span><button class="secondary" data-action="editCategories()">Alterar categorias</button></div>
             <label for="listName">Nome da lista</label>
             <input id="listName" class="input" value="" maxlength="100" placeholder="Ex.: Compras do mês">
           </div>
@@ -228,7 +243,7 @@
       </div>
       <section class="panel">
         <div class="panel-b">
-          <div class="field category-filter"><label for="category">Categoria do fornecedor</label><select id="category" class="select"><option value="">Todas as categorias</option></select></div><div class="range-row">
+          <div class="category-summary"><span id="providerCategories" class="muted"></span><button class="secondary" data-action="editCategories()">Alterar categorias</button></div><div class="range-row">
             <strong>Disponibilidade mínima</strong>
             <input id="range" type="range" min="0" max="100" value="0" data-input-action="filterProviders()">
             <span id="rangeVal" class="badge blue">0%</span>

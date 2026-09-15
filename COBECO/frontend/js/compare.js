@@ -8,16 +8,16 @@ const visible=()=>state.suppliers.filter(s=>s.coverage>=state.minimum);
 export function renderSuppliers(){
   const rows=visible(),valid=new Set(rows.map(s=>s.supplier_id));state.selected=new Set([...state.selected].filter(id=>valid.has(id)));
   $('selectedCount').textContent=`${state.selected.size} selecionados · ${rows.length} fornecedores`;$('providerCompareBtn').disabled=state.selected.size<2;
-  $('providerGrid').innerHTML=rows.length?rows.map(s=>`<article class="provider ${state.selected.has(s.supplier_id)?'selected':''}"><label class="provider-title"><h3>${escape(s.supplier_name)}</h3><input type="checkbox" value="${s.supplier_id}" ${state.selected.has(s.supplier_id)?'checked':''} aria-label="Selecionar ${escape(s.supplier_name)}"></label><div class="muted">${s.coverage}% da lista disponível</div><div class="availability"><progress max="100" value="${s.coverage}" aria-label="Disponibilidade de ${escape(s.supplier_name)}"></progress></div></article>`).join(''):'<div class="empty">Nenhum fornecedor atende ao filtro.</div>';
+  $('providerGrid').innerHTML=rows.length?rows.map(s=>`<article class="provider ${state.selected.has(s.supplier_id)?'selected':''}"><label class="provider-title"><h3>${escape(s.supplier_name)}</h3><input type="checkbox" value="${s.supplier_id}" ${state.selected.has(s.supplier_id)?'checked':''} aria-label="Selecionar ${escape(s.supplier_name)}"></label><div class="muted">${(s.categories||[]).map(c=>escape(c.name)).join(' · ')}</div><div class="muted">${s.coverage}% da lista disponível</div><div class="availability"><progress max="100" value="${s.coverage}" aria-label="Disponibilidade de ${escape(s.supplier_name)}"></progress></div></article>`).join(''):'<div class="empty">Nenhum fornecedor atende ao filtro.</div>';
   $('providerGrid').querySelectorAll('input').forEach(input=>input.onchange=()=>{if(input.checked)state.selected.add(Number(input.value));else state.selected.delete(Number(input.value));invalidate();renderSuppliers();});
   $('providerGrid').querySelectorAll('article').forEach(card=>card.onclick=event=>{if(event.target.closest('label'))return;const input=card.querySelector('input');input.click();});
 }
 export async function loadAvailability(){
   const version=++requestVersion;availabilityController?.abort();const controller=new AbortController();availabilityController=controller;
   invalidate();state.suppliers=[];$('providerCompareBtn').disabled=true;$('providerGrid').innerHTML='<div class="loading"><span class="spinner"></span><p>Consultando fornecedores…</p></div>';
-  if(!state.draft.items.length){state.selected.clear();renderSuppliers();return;}
+  if(!state.draft.items.length||!state.categoryIds.length){state.selected.clear();renderSuppliers();return;}
   try{
-    const rows=await api('/suppliers/availability',{method:'POST',body:{items:payload().items,category_id:state.category},signal:controller.signal});if(version!==requestVersion)return;
+    const rows=await api('/suppliers/availability',{method:'POST',body:{items:payload().items,category_ids:[...state.categoryIds]},signal:controller.signal});if(version!==requestVersion)return;
     state.suppliers=rows;renderSuppliers();
   }catch(error){if(version===requestVersion&&!controller.signal.aborted){state.selected.clear();$('providerGrid').innerHTML=`<div class="empty">${escape(error.message)}</div>`;$('selectedCount').textContent='Não foi possível consultar os fornecedores.';}}
 }
@@ -33,7 +33,7 @@ function renderResults(result){
 }
 export async function calculate(){
   if(state.selected.size<2)return toast('Selecione pelo menos dois fornecedores.',true);
-  const revision=state.revision,data={items:payload().items,supplier_ids:[...state.selected].sort((a,b)=>a-b)},key=JSON.stringify(data),cached=cache.get(key);
+  const revision=state.revision,data={items:payload().items,category_ids:[...state.categoryIds],supplier_ids:[...state.selected].sort((a,b)=>a-b)},key=JSON.stringify(data),cached=cache.get(key);
   go('results');if(cached&&cached.expires>Date.now()){state.result=cached.result;renderResults(cached.result);return;}
   compareController?.abort();const controller=new AbortController();compareController=controller;$('compareLoading').classList.remove('hidden');$('resultsWrap').classList.add('hidden');
   try{const result=await api('/compare',{method:'POST',body:data,signal:controller.signal});if(revision!==state.revision)return;cache.set(key,{result,expires:Date.now()+300000});state.result=result;renderResults(result);}
@@ -41,8 +41,7 @@ export async function calculate(){
   finally{if(compareController===controller)$('compareLoading').classList.add('hidden');}
 }
 export async function initCompare(){
-  $('category').onchange=()=>{state.category=Number($('category').value)||null;loadAvailability();};
+  window.addEventListener('categories-changed',()=>{requestVersion++;availabilityController?.abort();invalidate();if(state.screen==='providers')loadAvailability();});
   window.addEventListener('draft-changed',()=>{invalidate();state.suppliers=[];if(state.screen==='providers')loadAvailability();});
   window.addEventListener('screen-changed',event=>{if(event.detail==='providers')loadAvailability();});
-  try{const categories=await api('/categories');$('category').innerHTML='<option value="">Todas as categorias</option>'+categories.map(c=>`<option value="${c.id}">${escape(c.name)}</option>`).join('');}catch(error){toast(error.message,true);}
 }
